@@ -1,0 +1,36 @@
+23:48:10 INFO  : updated workspace path: Y:\
+23:48:10 INFO  : Embedded Template List generated successfully
+23:48:10 INFO  : cmd.exe, /C, C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\activate.bat && python C:\Xilinx\Vitis\2024.1\data\embeddedsw\scripts\pyesw\\repo.py -st   C:\Xilinx\Vitis\2024.1\data\embeddedsw && C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\deactivate.bat
+23:48:13 INFO  : Successfully created repository data at Y:\/.wsdata
+23:48:13 INFO  : cmd.exe, /C, C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\activate.bat && python C:\Xilinx\Vitis\2024.1\data\embeddedsw\scripts\pyesw\\get_template_data.py -d C:\Users\dashygo\AppData\Local\Temp\rigel_lopper_dashygo10885222490343945823 -r Y:\.wsdata\.repo.yaml && C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\deactivate.bat
+23:48:14 INFO  : Embedded Template List generated successfully
+23:48:27 INFO  : cmd.exe, /C, C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\activate.bat && python C:\Xilinx\Vitis\2024.1\data\embeddedsw\scripts\pyesw\\repo.py -st   C:\Xilinx\Vitis\2024.1\data\embeddedsw && C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\deactivate.bat
+23:48:27 ERROR : Failed to launch command : cmd.exe /C C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\activate.bat && python C:\Xilinx\Vitis\2024.1\data\embeddedsw\scripts\pyesw\\repo.py -st   C:\Xilinx\Vitis\2024.1\data\embeddedsw && C:\Xilinx\Vitis\2024.1\tps\win64\lopper-1.1.0\env\Scripts\deactivate.bat
+java.io.IOException: Cannot run program "cmd.exe" (in directory "Y:\.wsdata"): CreateProcess error=267, 目录名称无效。
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1128) ~[?:?]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1071) ~[?:?]
+	at com.xilinx.rigel.util.ProcessInvokeHelperRaw.invokeProcess(ProcessInvokeHelperRaw.java:95) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.util.ProcessInvokeHelper.invokeProcess(ProcessInvokeHelper.java:51) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.platform.AbstractPlatformUtils.executeCommand(AbstractPlatformUtils.java:83) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.platform.PlatformServiceUtils.createEmbeddedRepo(PlatformServiceUtils.java:1037) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.platform.PlatformServiceUtils.generateEmbeddedRepo(PlatformServiceUtils.java:1137) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.platform.PlatformServiceUtils.getEmbeddedRepoFile(PlatformServiceUtils.java:1057) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.platform.PlatformServiceUtils.getEmbeddedTemplates(PlatformServiceUtils.java:2912) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.frameworks.repo.component.EmbeddedTemplateProvider.loadBaremetalTemplates(EmbeddedTemplateProvider.java:52) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.frameworks.repo.component.EmbeddedTemplateProvider.loadEmbeddedTemplates(EmbeddedTemplateProvider.java:43) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.repository.RepositoryService.getEmbeddedExampleTemplateTree(RepositoryService.java:389) [rigel_server-1.0.0-161.jar:?]
+	at com.xilinx.rigel.services.repository.RepositoryServiceGrpc$MethodHandlers.invoke(RepositoryServiceGrpc.java:2356) [rigel_server-1.0.0-161.jar:?]
+	at io.grpc.stub.ServerCalls$UnaryServerCallHandler$UnaryServerCallListener.onHalfClose(ServerCalls.java:182) [grpc-stub-1.37.0.jar:1.37.0]
+	at io.grpc.internal.ServerCallImpl$ServerStreamListenerImpl.halfClosed(ServerCallImpl.java:331) [grpc-core-1.37.0.jar:1.37.0]
+	at io.grpc.internal.ServerImpl$JumpToApplicationThreadServerStreamListener$1HalfClosed.runInContext(ServerImpl.java:797) [grpc-core-1.37.0.jar:1.37.0]
+	at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37) [grpc-core-1.37.0.jar:1.37.0]
+	at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:123) [grpc-core-1.37.0.jar:1.37.0]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128) [?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628) [?:?]
+	at java.lang.Thread.run(Thread.java:829) [?:?]
+Caused by: java.io.IOException: CreateProcess error=267, 目录名称无效。
+	at java.lang.ProcessImpl.create(Native Method) ~[?:?]
+	at java.lang.ProcessImpl.<init>(ProcessImpl.java:492) ~[?:?]
+	at java.lang.ProcessImpl.start(ProcessImpl.java:153) ~[?:?]
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1107) ~[?:?]
+	... 20 more
