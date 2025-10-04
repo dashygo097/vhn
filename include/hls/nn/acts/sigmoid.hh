@@ -21,7 +21,7 @@ template <typename DType, int N> class SigmoidImpl {
   }
 };
 
-template <typename DType, int N>
-using Sigmoid = Elementwise<SigmoidImpl<DType, N>, DType, N>;
+template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE>
+using Sigmoid = Elementwise<SigmoidImpl<DType, N>, DType, N, OPT_LEVEL>;
 
 } // namespace hls_nn

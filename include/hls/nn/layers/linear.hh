@@ -9,15 +9,15 @@
 namespace hls_nn {
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           OptLevel OPT_LEVEL = OPT_NONE>
-class Linear1D {
+class Linear {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_LEVEL;
 
-  Linear1D() = default;
-  ~Linear1D() = default;
+  Linear() = default;
+  ~Linear() = default;
 
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
@@ -28,14 +28,14 @@ private:
 };
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
-class Linear1D<DType, IN_FEATURES, OUT_FEATURES, OPT_NONE> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_NONE;
-  Linear1D() = default;
-  ~Linear1D() = default;
+  Linear() = default;
+  ~Linear() = default;
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
                       const dtype weight[out_features][in_features],
@@ -61,15 +61,15 @@ private:
 };
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
-class Linear1D<DType, IN_FEATURES, OUT_FEATURES, OPT_LATENCY> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, OPT_LATENCY> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_LATENCY;
 
-  Linear1D() = default;
-  ~Linear1D() = default;
+  Linear() = default;
+  ~Linear() = default;
 
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
@@ -104,14 +104,14 @@ private:
 };
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
-class Linear1D<DType, IN_FEATURES, OUT_FEATURES, OPT_THROUGHPUT> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, OPT_THROUGHPUT> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_THROUGHPUT;
-  Linear1D() = default;
-  ~Linear1D() = default;
+  Linear() = default;
+  ~Linear() = default;
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
                       const dtype weight[out_features][in_features],
@@ -146,15 +146,15 @@ private:
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           OptLevel OPT_LEVEL = OPT_NONE>
-class Linear2D {
+class LinearBatched {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_LEVEL;
 
-  Linear2D() = default;
-  ~Linear2D() = default;
+  LinearBatched() = default;
+  ~LinearBatched() = default;
 
   static void forward(dtype output[][out_features],
                       const dtype input[][in_features],
@@ -170,7 +170,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      Linear1D<DType, IN_FEATURES, OUT_FEATURES, OPT_LEVEL>::forward(
+      Linear<DType, IN_FEATURES, OUT_FEATURES, OPT_LEVEL>::forward(
           input[b], weight, bias, output[b]);
     }
   }
