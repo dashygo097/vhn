@@ -110,8 +110,10 @@ public:
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_THROUGHPUT;
+
   Linear() = default;
   ~Linear() = default;
+
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
                       const dtype weight[out_features][in_features],

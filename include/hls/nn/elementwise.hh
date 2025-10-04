@@ -13,6 +13,7 @@ public:
   using dtype = DType;
   using kernel = KernelType;
   static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LEVEL;
 
   Elementwise() = default;
   ~Elementwise() = default;
@@ -30,6 +31,7 @@ public:
   using dtype = DType;
   using kernel = KernelType;
   static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_NONE;
 
   Elementwise() = default;
   ~Elementwise() = default;
@@ -64,6 +66,7 @@ public:
   using dtype = DType;
   using kernel = KernelType;
   static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LATENCY;
 
   Elementwise() = default;
   ~Elementwise() = default;
@@ -111,6 +114,7 @@ public:
   using dtype = DType;
   using kernel = KernelType;
   static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_THROUGHPUT;
 
   Elementwise() = default;
   ~Elementwise() = default;

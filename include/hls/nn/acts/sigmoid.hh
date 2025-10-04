@@ -14,9 +14,9 @@ template <typename DType, int N> class SigmoidImpl {
 
   static void kernel(dtype output, const dtype input) {
 #ifdef __VITIS_HLS__
-    output = 1 / (1 + hls::exp(-input));
+    output = dtype(1.0f) / (dtype(1.0f) + hls::exp(-input));
 #else
-    output = 1 / (1 + std::exp(-input));
+    output = dtype(1.0f) / (dtype(1.0f) + std::exp(-input));
 #endif
   }
 };

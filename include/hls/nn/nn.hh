@@ -10,6 +10,7 @@
 #include "./layers/conv1d.hh"
 #include "./layers/conv2d.hh"
 #include "./layers/linear.hh"
+#include "./layers/softmax.hh"
 
 // Normalizations
 #include "./norms/batchnorm1d.hh"
