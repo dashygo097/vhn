@@ -22,6 +22,10 @@ else()
     message(STATUS "Building on Unix-like system")
 endif()
 
+# 3rdparty 
+include_directories(3rdparty)
+add_subdirectory(3rdparty/googletest EXCLUDE_FROM_ALL)
+
 # hls lib
 file(GLOB_RECURSE HLS_SOURCES src/*.c src/*.cc src/*.cpp)
 file(GLOB_RECURSE HLS_HEADERS include/*.h include/*.hh include/*.hpp)
@@ -87,4 +91,8 @@ make_preview_string(REL_SOURCES 3)
 print_info("[TRACE] Source files: ${PREVIOUS_SCOPE_VAR}" "96")
 
 # Testing
+include(GoogleTest)
 enable_testing()
+
+# Apps
+add_subdirectory(tests)

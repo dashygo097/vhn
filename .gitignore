@@ -2,5 +2,5 @@
 .cache/
 logs/
 
-apps/
+app/projects/
 build/
