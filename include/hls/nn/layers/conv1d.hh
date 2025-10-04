@@ -173,4 +173,39 @@ public:
 private:
 };
 
+template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
+          const int KernelSize, const int N>
+class Conv1dBatched {
+public:
+  using dtype = DType;
+  static constexpr int in_channels = IN_CHANNELS;
+  static constexpr int out_channels = OUT_CHANNELS;
+  static constexpr int kernel_size = KernelSize;
+  static constexpr int n = N;
+
+  Conv1dBatched() = default;
+  ~Conv1dBatched() = default;
+
+  static void
+  forward(dtype output[][out_channels][n - kernel_size + 1],
+          const dtype input[][in_channels][n],
+          const dtype weight[out_channels][in_channels][kernel_size],
+          const dtype bias[out_channels], int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      Conv1d<DType, IN_CHANNELS, OUT_CHANNELS, KernelSize, N,
+             OPT_THROUGHPUT>::forward(output[b], input[b], weight, bias);
+    }
+  }
+
+private:
+};
+
 } // namespace hls_nn
