@@ -14,6 +14,9 @@ public:
   static const int n = N;
   static const OptLevel opt_level = OPT_LEVEL;
 
+  Softmax() = default;
+  ~Softmax() = default;
+
   static void forward(dtype output[n], const dtype input[n]);
 
 private:
@@ -63,6 +66,9 @@ public:
   static const int n = N;
   static const OptLevel opt_level = OPT_LATENCY;
 
+  Softmax() = default;
+  ~Softmax() = default;
+
   static void forward(dtype output[n], dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -110,6 +116,10 @@ public:
   using dtype = DType;
   static const int n = N;
   static const OptLevel opt_level = OPT_THROUGHPUT;
+
+  Softmax() = default;
+  ~Softmax() = default;
+
   static void forward(dtype output[n], dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
