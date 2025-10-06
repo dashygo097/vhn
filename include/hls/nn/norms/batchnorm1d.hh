@@ -17,7 +17,7 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[n], const dtype input[N],
+  static void forward(dtype output[][n], const dtype input[][N],
                       const dtype weight[N], const dtype bias[N],
                       const dtype running_mean[N], const dtype running_var[N],
                       const dtype eps = dtype(1e-5));
@@ -34,7 +34,7 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[n], const dtype input[N],
+  static void forward(dtype output[][n], const dtype inputp[][N],
                       const dtype weight[N], const dtype bias[N],
                       const dtype running_mean[N], const dtype running_var[N],
                       const dtype eps = dtype(1e-5)) {}
@@ -51,7 +51,7 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[n], const dtype input[N],
+  static void forward(dtype output[][n], const dtype input[][N],
                       const dtype weight[N], const dtype bias[N],
                       const dtype running_mean[N], const dtype running_var[N],
                       const dtype eps = dtype(1e-5)) {}
@@ -66,7 +66,7 @@ public:
   static constexpr OptLevel opt_level = OPT_THROUGHPUT;
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
-  static void forward(dtype output[n], const dtype input[N],
+  static void forward(dtype output[][n], const dtype input[][N],
                       const dtype weight[N], const dtype bias[N],
                       const dtype running_mean[N], const dtype running_var[N],
                       const dtype eps = dtype(1e-5)) {}
