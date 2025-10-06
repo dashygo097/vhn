@@ -11,8 +11,8 @@ namespace hls_nn {
 template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE> class Softmax {
 public:
   using dtype = DType;
-  static const int n = N;
-  static const OptLevel opt_level = OPT_LEVEL;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LEVEL;
 
   Softmax() = default;
   ~Softmax() = default;
@@ -25,8 +25,8 @@ private:
 template <typename DType, int N> class Softmax<DType, N, OPT_NONE> {
 public:
   using dtype = DType;
-  static const int n = N;
-  static const OptLevel opt_level = OPT_NONE;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_NONE;
 
   static void forward(dtype output[n], dtype input[n]) {
 #ifdef __VITIS_HLS__
@@ -63,8 +63,8 @@ private:
 template <typename DType, int N> class Softmax<DType, N, OPT_LATENCY> {
 public:
   using dtype = DType;
-  static const int n = N;
-  static const OptLevel opt_level = OPT_LATENCY;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LATENCY;
 
   Softmax() = default;
   ~Softmax() = default;
@@ -114,8 +114,8 @@ public:
 template <typename DType, int N> class Softmax<DType, N, OPT_THROUGHPUT> {
 public:
   using dtype = DType;
-  static const int n = N;
-  static const OptLevel opt_level = OPT_THROUGHPUT;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_THROUGHPUT;
 
   Softmax() = default;
   ~Softmax() = default;
@@ -163,4 +163,33 @@ public:
 
 private:
 };
+
+template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE>
+class SoftmaxBatched {
+public:
+  using dtype = DType;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LEVEL;
+
+  SoftmaxBatched() = default;
+  ~SoftmaxBatched() = default;
+
+  static void forward(dtype output[][n], const dtype input[][n],
+                      int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = 8 dim = 2
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+
+      Softmax<dtype, n, opt_level>::forward(output[b], input[b]);
+    }
+  }
+};
+
 } // namespace hls_nn
