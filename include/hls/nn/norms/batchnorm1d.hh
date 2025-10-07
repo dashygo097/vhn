@@ -64,8 +64,10 @@ public:
   using dtype = DType;
   static constexpr int n = N;
   static constexpr OptLevel opt_level = OPT_THROUGHPUT;
+
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
+
   static void forward(dtype output[][n], const dtype input[][N],
                       const dtype weight[N], const dtype bias[N],
                       const dtype running_mean[N], const dtype running_var[N],
