@@ -178,7 +178,6 @@ public:
                       int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = 8 dim = 2
 #endif
 
   BATCH_LOOP:

@@ -34,8 +34,10 @@ public:
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_NONE;
+
   Linear() = default;
   ~Linear() = default;
+
   static void forward(dtype output[out_features],
                       const dtype input[in_features],
                       const dtype weight[out_features][in_features],
@@ -44,11 +46,10 @@ public:
 #pragma HLS INLINE off
 #endif
 
-  OUT_LOOP:
+  OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
       dtype acc = 0;
-
-    IN_LOOP:
+    INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
         acc += input[j] * weight[i][j];
       }
@@ -81,14 +82,13 @@ public:
 #pragma HLS ARRAY_PARTITION variable = weight block factor = 16 dim = 2
 #endif
 
-  OUT_LOOP:
+  OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1 rewind
 #endif
       dtype acc = 0;
-
-    IN_LOOP:
+    INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL
@@ -124,14 +124,14 @@ public:
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor = 8 dim = 2
 #endif
 
-  OUT_LOOP:
+  OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1
 #endif
       dtype acc = 0;
 
-    IN_LOOP:
+    INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = 4

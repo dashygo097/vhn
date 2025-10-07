@@ -14,5 +14,7 @@
 
 // Normalizations
 #include "./norms/batchnorm1d.hh"
+#include "./norms/batchnorm2d.hh"
+#include "./norms/layernorm.hh"
 
 // Normalizations
