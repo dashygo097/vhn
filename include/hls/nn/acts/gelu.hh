@@ -8,8 +8,8 @@
 #endif
 
 namespace hls_nn {
-template <typename Ddtypeype, int N> class GeLUImpl {
-  using dtype = Ddtypeype;
+template <typename Dtype, int N> class GeLUImpl {
+  using dtype = Dtype;
   static constexpr int n = N;
 
   static dtype kernel(dtype x) {
@@ -25,7 +25,9 @@ template <typename Ddtypeype, int N> class GeLUImpl {
   }
 };
 
-template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE>
-using GeLU = Elementwise<DType, GeLUImpl<DType, N>, N, OPT_LEVEL>;
+// FIXME: Weak against Config with different OPT_LEVEL
+template <typename DType, int N, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
+using GeLU = Elementwise<DType, GeLUImpl<DType, N>, N, Config, OPT_LEVEL>;
 
 } // namespace hls_nn

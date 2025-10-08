@@ -21,7 +21,9 @@ template <typename DType, int N> class SigmoidImpl {
   }
 };
 
-template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE>
-using Sigmoid = Elementwise<SigmoidImpl<DType, N>, DType, N, OPT_LEVEL>;
+// FIXME: Weak against Config with different OPT_LEVEL
+template <typename DType, int N, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
+using Sigmoid = Elementwise<DType, SigmoidImpl<DType, N>, N, Config, OPT_LEVEL>;
 
 } // namespace hls_nn

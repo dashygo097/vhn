@@ -6,9 +6,17 @@
 #endif
 
 namespace hls_nn {
+template <const int UNROLL_FACTOR, const int PARTITION_FACTOR,
+          const int PIPELINE_II>
+struct Conv2dHLSConfig {
+  static constexpr int _unroll_factor = UNROLL_FACTOR;
+  static constexpr int _partition_factor = PARTITION_FACTOR;
+  static constexpr int _pipeline_ii = PIPELINE_II;
+};
+
 template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
           const int KERNEL_SIZE, const int PADDING, const int N,
-          OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
 class Conv2d {
 public:
   using dtype = DType;
@@ -33,7 +41,7 @@ private:
 
 template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
           const int KERNEL_SIZE, const int PADDING, const int N>
-class Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N,
+class Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N, void,
              OPT_NONE> {
 public:
   using dtype = DType;
@@ -89,9 +97,10 @@ private:
 };
 
 template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
-          const int KERNEL_SIZE, const int PADDING, const int N>
-class Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N,
-             OPT_LATENCY> {
+          const int KERNEL_SIZE, const int PADDING, const int N,
+          typename Config>
+class Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N, Config,
+             OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int in_channels = IN_CHANNELS;
@@ -99,7 +108,11 @@ public:
   static constexpr int kernel_size = KERNEL_SIZE;
   static constexpr int padding = PADDING;
   static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_LATENCY;
+  static constexpr OptLevel opt_level = OPT_ENABLED;
+
+  static constexpr int unroll_factor = Config::_unroll_factor;
+  static constexpr int partition_factor = Config::_partition_factor;
+  static constexpr int pipeline_ii = Config::_pipeline_ii;
 
   Conv2d() = default;
   ~Conv2d() = default;
@@ -112,8 +125,17 @@ public:
       const dtype bias[out_channels]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = input complete dim = 1
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = 16 dim = 4
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
+    partition_factor dim = 1
+
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+    kernel_size dim = 4
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+    partition_factor dim = 2
+
+#pragma HLS ARRAY_PARTITION variable = output cyclic factor =                  \
+    partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
 #endif
   OUT_CHANNEL_LOOP:
     for (int oc = 0; oc < out_channels; oc++) {
@@ -123,11 +145,14 @@ public:
         for (int pos_x = 0; pos_x < n - kernel_size + 1 + 2 * padding;
              pos_x++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1 rewind
+#pragma HLS PIPELINE II = pipeline_ii
 #endif
           dtype acc = dtype(0.0f);
         IN_CHANNEL_LOOP:
           for (int ic = 0; ic < in_channels; ic++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#endif
           KERNEL_Y_LOOP:
             for (int ky = 0; ky < kernel_size; ky++) {
 #ifdef __VITIS_HLS__
@@ -138,74 +163,6 @@ public:
 #pragma HLS UNROLL
 #endif
               for (int kx = 0; kx < kernel_size; kx++) {
-                int in_pos_y = pos_y + ky - padding;
-                int in_pos_x = pos_x + kx - padding;
-                if (in_pos_y >= 0 && in_pos_y < n && in_pos_x >= 0 &&
-                    in_pos_x < n) {
-                  acc += input[ic][in_pos_y][in_pos_x] * weight[oc][ic][ky][kx];
-                }
-              }
-            }
-          }
-          output[oc][pos_y][pos_x] = acc + bias[oc];
-        }
-      }
-    }
-  }
-
-private:
-};
-
-template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
-          const int KERNEL_SIZE, const int PADDING, const int N>
-class Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N,
-             OPT_THROUGHPUT> {
-public:
-  using dtype = DType;
-  static constexpr int in_channels = IN_CHANNELS;
-  static constexpr int out_channels = OUT_CHANNELS;
-  static constexpr int kernel_size = KERNEL_SIZE;
-  static constexpr int padding = PADDING;
-  static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_THROUGHPUT;
-
-  Conv2d() = default;
-  ~Conv2d() = default;
-
-  static void forward(
-      dtype output[out_channels][n - kernel_size + 1 + 2 * padding]
-                  [n - kernel_size + 1 + 2 * padding],
-      const dtype input[in_channels][n][n],
-      const dtype weight[out_channels][in_channels][kernel_size][kernel_size],
-      const dtype bias[out_channels]) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = input cyclic factor = 8 dim = 1
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = 8 dim = 4
-#endif
-  OUT_CHANNEL_LOOP:
-    for (int oc = 0; oc < out_channels; oc++) {
-    OUT_POS_Y_LOOP:
-      for (int pos_y = 0; pos_y < n - kernel_size + 1 + 2 * padding; pos_y++) {
-      OUT_POS_X_LOOP:
-        for (int pos_x = 0; pos_x < n - kernel_size + 1 + 2 * padding;
-             pos_x++) {
-#ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1
-#endif
-          dtype acc = dtype(0.0f);
-        IN_CHANNEL_LOOP:
-          for (int ic = 0; ic < in_channels; ic++) {
-          KERNEL_Y_LOOP:
-            for (int ky = 0; ky < kernel_size; ky++) {
-#ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = kernel_size
-#endif
-            KERNEL_X_LOOP:
-              for (int kx = 0; kx < kernel_size; kx++) {
-#ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = kernel_size
-#endif
                 int in_pos_y = pos_y + ky - padding;
                 int in_pos_x = pos_x + kx - padding;
                 if (in_pos_y >= 0 && in_pos_y < n && in_pos_x >= 0 &&
@@ -226,7 +183,7 @@ private:
 
 template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
           const int KERNEL_SIZE, const int PADDING, const int N,
-          const OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config, const OptLevel OPT_LEVEL = OPT_NONE>
 class Conv2dBatched {
 public:
   using dtype = DType;
@@ -255,8 +212,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      Conv2d<dtype, in_channels, out_channels, kernel_size, padding, n,
-             opt_level>::forward(output[b], input[b], weight, bias);
+      Conv2d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N, Config,
+             OPT_LEVEL>::forward(output[b], input[b], weight, bias);
     }
   }
 

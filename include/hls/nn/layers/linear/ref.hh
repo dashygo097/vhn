@@ -53,8 +53,9 @@ private:
   std::uniform_real_distribution<float> _dist;
 };
 
+// FIXME: Weak against Config with different OPT_LEVEL
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
-          OptLevel OPT_LEVEL>
+          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
 class LinearTestbench {
 public:
   LinearTestbench() = default;
@@ -126,8 +127,8 @@ public:
     std::cout << "Testing Linear Layer" << std::endl;
     std::cout << "IN_FEATURES: " << IN_FEATURES << std::endl;
     std::cout << "OUT_FEATURES: " << OUT_FEATURES << std::endl;
-    std::cout << "OPT_LEVEL: " << static_cast<int>(OPT_LEVEL) << std::endl;
-    std::cout << "DType: " << typeid(DType).name() << std::endl;
+    std::cout << "OPT_STATUS: " << OPT_LEVEL << std::endl
+              << "DType: " << typeid(DType).name() << std::endl;
     std::cout << "########################################" << std::endl;
 
     test_random_case("Random Test Case 1");
@@ -138,8 +139,10 @@ public:
   }
 
 private:
-  using LinearDUT = hls_nn::Linear<DType, IN_FEATURES, OUT_FEATURES, OPT_LEVEL>;
-  using LinearRef = hls_nn::Linear<float, IN_FEATURES, OUT_FEATURES>;
+  using LinearDUT =
+      hls_nn::Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_LEVEL>;
+  using LinearRef =
+      hls_nn::Linear<float, IN_FEATURES, OUT_FEATURES, void, OPT_NONE>;
   LinearTestCase<IN_FEATURES, OUT_FEATURES> _generator;
 
   DType _input_dut[IN_FEATURES];

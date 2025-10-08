@@ -7,8 +7,16 @@
 #endif
 
 namespace hls_nn {
+template <const int UNROLL_FACTOR, const int PARTITION_FACTOR,
+          const int PIPELINE_II>
+struct BatchNorm2dHLSConfig {
+  static constexpr int _unroll_factor = UNROLL_FACTOR;
+  static constexpr int _partition_factor = PARTITION_FACTOR;
+  static constexpr int _pipeline_ii = PIPELINE_II;
+};
+
 template <typename DType, const int CHANNELS, const int H, const int W,
-          OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
 class BatchNorm2d {
 public:
   using dtype = DType;
@@ -30,58 +38,15 @@ public:
 private:
 };
 
-template <typename DType, const int CHANNELS, const int H, const int W>
-class BatchNorm2d<DType, CHANNELS, H, W, OPT_NONE> {
+template <typename DType, const int CHANNELS, const int H, const int W,
+          typename Config>
+class BatchNorm2d<DType, CHANNELS, H, W, Config, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int channels = CHANNELS;
   static constexpr int height = H;
   static constexpr int width = W;
   static constexpr OptLevel opt_level = OPT_NONE;
-
-  BatchNorm2d() = default;
-  ~BatchNorm2d() = default;
-
-  static void forward(dtype output[][channels][height][width],
-                      const dtype input[][channels][height][width],
-                      const dtype weight[channels], const dtype bias[channels],
-                      const dtype running_mean[channels],
-                      const dtype running_var[channels],
-                      const dtype eps = dtype(1e-5)) {}
-
-private:
-};
-
-template <typename DType, const int CHANNELS, const int H, const int W>
-class BatchNorm2d<DType, CHANNELS, H, W, OPT_LATENCY> {
-public:
-  using dtype = DType;
-  static constexpr int channels = CHANNELS;
-  static constexpr int height = H;
-  static constexpr int width = W;
-  static constexpr OptLevel opt_level = OPT_LATENCY;
-
-  BatchNorm2d() = default;
-  ~BatchNorm2d() = default;
-
-  static void forward(dtype output[][channels][height][width],
-                      const dtype input[][channels][height][width],
-                      const dtype weight[channels], const dtype bias[channels],
-                      const dtype running_mean[channels],
-                      const dtype running_var[channels],
-                      const dtype eps = dtype(1e-5)) {}
-
-private:
-};
-
-template <typename DType, const int CHANNELS, const int H, const int W>
-class BatchNorm2d<DType, CHANNELS, H, W, OPT_THROUGHPUT> {
-public:
-  using dtype = DType;
-  static constexpr int channels = CHANNELS;
-  static constexpr int height = H;
-  static constexpr int width = W;
-  static constexpr OptLevel opt_level = OPT_THROUGHPUT;
 
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
@@ -97,21 +62,24 @@ private:
 };
 
 template <typename DType, const int CHANNELS, const int H, const int W,
-          const int LENGTH>
-class SpacialBatchNorm2d {
+          typename Config>
+class BatchNorm2d<DType, CHANNELS, H, W, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int channels = CHANNELS;
   static constexpr int height = H;
   static constexpr int width = W;
-  static constexpr int length = LENGTH;
-  static constexpr OptLevel opt_level = OPT_NONE;
+  static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  SpacialBatchNorm2d() = default;
-  ~SpacialBatchNorm2d() = default;
+  static constexpr int unroll_factor = Config::_unroll_factor;
+  static constexpr int partition_factor = Config::_partition_factor;
+  static constexpr int pipeline_ii = Config::_pipeline_ii;
 
-  static void forward(dtype output[][channels][height][width][length],
-                      const dtype input[][channels][height][width][length],
+  BatchNorm2d() = default;
+  ~BatchNorm2d() = default;
+
+  static void forward(dtype output[][channels][height][width],
+                      const dtype input[][channels][height][width],
                       const dtype weight[channels], const dtype bias[channels],
                       const dtype running_mean[channels],
                       const dtype running_var[channels],

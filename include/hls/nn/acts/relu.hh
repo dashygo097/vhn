@@ -15,7 +15,9 @@ template <typename DType, int N> class ReLUImpl {
   }
 };
 
-template <typename DType, int N, OptLevel OPT_LEVEL = OPT_NONE>
-using ReLU = Elementwise<DType, ReLUImpl<DType, N>, N, OPT_LEVEL>;
+// FIXME: Weak against Config with different OPT_LEVEL
+template <typename DType, int N, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
+using ReLU = Elementwise<DType, ReLUImpl<DType, N>, N, Config, OPT_LEVEL>;
 
 } // namespace hls_nn
