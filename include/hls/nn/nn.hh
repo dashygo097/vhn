@@ -11,7 +11,8 @@
 #include "./layers/conv2d.hh"
 #include "./layers/linear/linear.hh"
 #include "./layers/linear/ref.hh"
-#include "./layers/softmax.hh"
+#include "./layers/softmax/ref.hh"
+#include "./layers/softmax/softmax.hh"
 
 // Normalizations
 #include "./norms/batchnorm1d.hh"
