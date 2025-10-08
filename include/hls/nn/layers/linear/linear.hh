@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../opt_level.hh"
+#include "../../../opt_level.hh"
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -48,7 +48,7 @@ public:
 
   OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
-      dtype acc = 0;
+      dtype acc = dtype(0.0f);
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
         acc += input[j] * weight[i][j];
@@ -87,7 +87,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1 rewind
 #endif
-      dtype acc = 0;
+
+      dtype acc = dtype(0.0f);
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__
@@ -129,8 +130,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1
 #endif
-      dtype acc = 0;
 
+      dtype acc = dtype(0.0f);
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__

@@ -38,7 +38,7 @@ public:
       max_val = (input[i] > max_val) ? input[i] : max_val;
     }
 
-    dtype sum = 0;
+    dtype sum = dtype(0.0f);
     dtype exp_val[n];
   CALC_EXP:
     for (int i = 0; i < n; i++) {
@@ -85,7 +85,7 @@ public:
       max_val = (input[i] > max_val) ? input[i] : max_val;
     }
 
-    dtype sum = 0;
+    dtype sum = dtype(0.0f);
     dtype exp_val[n];
   CALC_EXP:
     for (int i = 0; i < n; i++) {
@@ -136,7 +136,7 @@ public:
       max_val = (input[i] > max_val) ? input[i] : max_val;
     }
 
-    dtype sum = 0;
+    dtype sum = dtype(0.0f);
     dtype exp_val[n];
   CALC_EXP:
     for (int i = 0; i < n; i++) {

@@ -57,7 +57,7 @@ public:
     for (int i = 0; i < actual_len; i++) {
     QKV_INNER_LOOP:
       for (int j = 0; j < 3 * d_model; j++) {
-        dtype sum = 0;
+        dtype sum = dtype(0.0f);
       QKV_DOT_PRODUCT:
         for (int k = 0; k < d_model; k++) {
           sum += input[i * d_model + k] * (*_Wqkv)[j][k];
@@ -97,7 +97,7 @@ public:
         dtype row_max = dtype(-1e9);
       ATTN_SCORES_J_LOOP:
         for (int j = 0; j < actual_len; j++) {
-          dtype score = 0;
+          dtype score = dtype(0.0f);
         ATTN_SCORES_DOT_PRODUCT:
           for (int k = 0; k < head_dim; k++) {
             score += Q[i * d_model + h * head_dim + k] *
@@ -120,7 +120,7 @@ public:
     for (int h = 0; h < num_heads; h++) {
     ATTN_SOFTMAX_I_LOOP:
       for (int i = 0; i < actual_len; i++) {
-        dtype sum_exp = 0;
+        dtype sum_exp = dtype(0.0f);
       ATTN_SOFTMAX_J_LOOP:
         for (int j = 0; j < actual_len; j++) {
           attn_scores[h][i][j] =
@@ -140,7 +140,7 @@ public:
       for (int i = 0; i < actual_len; i++) {
       ATTN_OUTPUT_K_LOOP:
         for (int k = 0; k < head_dim; k++) {
-          dtype sum = 0;
+          dtype sum = dtype(0.0f);
         ATTN_OUTPUT_J_LOOP:
           for (int j = 0; j < actual_len; j++) {
             sum += attn_scores[h][i][j] * V[j * d_model + h * head_dim + k];
@@ -165,7 +165,7 @@ public:
     for (int i = 0; i < actual_len; i++) {
     OUTPUT_INNER_LOOP:
       for (int j = 0; j < d_model; j++) {
-        dtype acc = 0;
+        dtype acc = dtype(0.0f);
       OUTPUT_DOT_PRODUCT:
         for (int k = 0; k < d_model; k++) {
           acc += attn_output[i * d_model + k] * (*_Wo)[j][k];

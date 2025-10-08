@@ -9,7 +9,8 @@
 #include "./elementwise.hh"
 #include "./layers/conv1d.hh"
 #include "./layers/conv2d.hh"
-#include "./layers/linear.hh"
+#include "./layers/linear/linear.hh"
+#include "./layers/linear/ref.hh"
 #include "./layers/softmax.hh"
 
 // Normalizations

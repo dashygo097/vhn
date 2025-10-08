@@ -63,7 +63,7 @@ public:
       OUT_POS_X_LOOP:
         for (int pos_x = 0; pos_x < n - kernel_size + 1 + 2 * padding;
              pos_x++) {
-          dtype acc = 0;
+          dtype acc = dtype(0.0f);
         IN_CHANNEL_LOOP:
           for (int ic = 0; ic < in_channels; ic++) {
           KERNEL_Y_LOOP:
@@ -125,7 +125,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1 rewind
 #endif
-          dtype acc = 0;
+          dtype acc = dtype(0.0f);
         IN_CHANNEL_LOOP:
           for (int ic = 0; ic < in_channels; ic++) {
           KERNEL_Y_LOOP:
@@ -193,7 +193,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1
 #endif
-          dtype acc = 0;
+          dtype acc = dtype(0.0f);
         IN_CHANNEL_LOOP:
           for (int ic = 0; ic < in_channels; ic++) {
           KERNEL_Y_LOOP:
