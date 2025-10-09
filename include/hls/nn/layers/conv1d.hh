@@ -32,10 +32,10 @@ public:
   ~Conv1d() = default;
 
   static void
-  forward(dtype output[out_channels][n - kernel_size + 1 + 2 * padding],
-          const dtype input[in_channels][n],
-          const dtype weight[out_channels][in_channels][kernel_size],
-          const dtype bias[out_channels]);
+  forward(dtype output[OUT_CHANNELS][N - KERNEL_SIZE + 1 + 2 * PADDING],
+          const dtype input[IN_CHANNELS][N],
+          const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE],
+          const dtype bias[OUT_CHANNELS]);
 
 private:
 };
@@ -57,10 +57,11 @@ public:
   ~Conv1d() = default;
 
   static void
-  forward(dtype output[out_channels][n - kernel_size + 1 + 2 * padding],
-          const dtype input[in_channels][n],
-          const dtype weight[out_channels][in_channels][kernel_size],
-          const dtype bias[out_channels]) {
+  forward(dtype output[OUT_CHANNELS][N - KERNEL_SIZE + 1 + 2 * PADDING],
+          const dtype input[IN_CHANNELS][N],
+          const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE],
+          const dtype bias[OUT_CHANNELS]) {
+
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -109,10 +110,11 @@ public:
   ~Conv1d() = default;
 
   static void
-  forward(dtype output[out_channels][n - kernel_size + 1 + 2 * padding],
-          const dtype input[in_channels][n],
-          const dtype weight[out_channels][in_channels][kernel_size],
-          const dtype bias[out_channels]) {
+  forward(dtype output[OUT_CHANNELS][N - KERNEL_SIZE + 1 + 2 * PADDING],
+          const dtype input[IN_CHANNELS][N],
+          const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE],
+          const dtype bias[OUT_CHANNELS]) {
+
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input block factor =                    \
@@ -168,10 +170,10 @@ public:
   ~Conv1dBatched() = default;
 
   static void
-  forward(dtype output[][out_channels][n - kernel_size + 1 + 2 * padding],
-          const dtype input[][in_channels][n],
-          const dtype weight[out_channels][in_channels][kernel_size],
-          const dtype bias[out_channels], int batch_size) {
+  forward(dtype output[][OUT_CHANNELS][N - KERNEL_SIZE + 1 + 2 * PADDING],
+          const dtype input[][IN_CHANNELS][N],
+          const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE],
+          const dtype bias[OUT_CHANNELS], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
 #endif
@@ -182,7 +184,13 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #endif
       Conv1d<DType, IN_CHANNELS, OUT_CHANNELS, KERNEL_SIZE, PADDING, N, Config,
-             OPT_LEVEL>::forward(output[b], input[b], weight, bias);
+             OPT_LEVEL>::
+          forward(
+              *reinterpret_cast<
+                  dtype(*)[OUT_CHANNELS][N - KERNEL_SIZE + 1 + 2 * PADDING]>(
+                  output[b]),
+              *reinterpret_cast<const dtype(*)[IN_CHANNELS][N]>(input[b]),
+              weight, bias);
     }
   }
 

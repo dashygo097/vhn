@@ -31,10 +31,10 @@ public:
   Linear() = default;
   ~Linear() = default;
 
-  static void forward(dtype output[out_features],
-                      const dtype input[in_features],
-                      const dtype weight[out_features][in_features],
-                      const dtype bias[out_features]);
+  static void forward(dtype output[OUT_FEATURES],
+                      const dtype input[IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES]);
 
 private:
 };
@@ -46,12 +46,14 @@ public:
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_NONE;
+
   Linear() = default;
   ~Linear() = default;
-  static void forward(dtype output[out_features],
-                      const dtype input[in_features],
-                      const dtype weight[out_features][in_features],
-                      const dtype bias[out_features]) {
+
+  static void forward(dtype output[OUT_FEATURES],
+                      const dtype input[IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -86,10 +88,10 @@ public:
   Linear() = default;
   ~Linear() = default;
 
-  static void forward(dtype output[out_features],
-                      const dtype input[in_features],
-                      const dtype weight[out_features][in_features],
-                      const dtype bias[out_features]) {
+  static void forward(dtype output[OUT_FEATURES],
+                      const dtype input[IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -121,20 +123,21 @@ private:
 };
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
-          typename Config>
+          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
 class LinearBatched {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
   static constexpr int out_features = OUT_FEATURES;
+  static constexpr OptLevel opt_level = OPT_LEVEL;
 
   LinearBatched() = default;
   ~LinearBatched() = default;
 
-  static void forward(dtype output[][out_features],
-                      const dtype input[][in_features],
-                      const dtype weight[out_features][in_features],
-                      const dtype bias[out_features], int batch_size) {
+  static void forward(dtype output[][OUT_FEATURES],
+                      const dtype input[][IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES], int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
 #endif
@@ -144,8 +147,10 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      Linear<DType, IN_FEATURES, OUT_FEATURES, Config>::forward(
-          input[b], weight, bias, output[b]);
+      Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_LEVEL>::forward(
+          *reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
+          *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
+          bias);
     }
   }
 

@@ -86,8 +86,8 @@ public:
   static void forward(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = output factor = partition_factor dim = 1
-#pragma HLS ARRAY_PARTITION variable = input factor = partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #endif
   ELEMENTWISE_LOOP:
     for (int i = 0; i < n; i++) {
@@ -103,8 +103,9 @@ public:
                       const dtype input2[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = output factor = partition_factor dim = 1
-#pragma HLS ARRAY_PARTITION variable = input1 factor = partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = input1 cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = input2 cyclic factor = partition_factor
 #endif
   ELEMEMTWISE_LOOP_2:
     for (int i = 0; i < n; i++) {

@@ -1,8 +1,10 @@
 #pragma once
 
 #include "../../../opt_level.hh"
+#include <cmath>
 
 #ifdef __VITIS_HLS__
+#include <hls_math.h>
 #include <hls_stream.h>
 #endif
 
@@ -16,7 +18,7 @@ struct FusedMHAHLSConfig {
 };
 
 template <typename DType, const int D_MODEL, const int NUM_HEADS,
-          const int MAX_SEQ_LEN, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
+          const int SEQ_LEN, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
 class FusedMHA {
 public:
   static_assert(D_MODEL % NUM_HEADS == 0,
@@ -25,53 +27,33 @@ public:
   static constexpr int d_model = D_MODEL;
   static constexpr int num_heads = NUM_HEADS;
   static constexpr int head_dim = D_MODEL / NUM_HEADS;
-  static constexpr int max_seq_len = MAX_SEQ_LEN;
+  static constexpr int seq_len = SEQ_LEN;
   static constexpr OptLevel opt_level = OPT_LEVEL;
 
-  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL][D_MODEL];
+  using Wo_t = dtype[D_MODEL * D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   FusedMHA() = default;
-  FusedMHA(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-           const bo_t &bo)
-      : _Wqkv(&Wqkv), _bqkv(&bqkv), _Wo(&Wo), _bo(&bo) {}
   ~FusedMHA() = default;
 
-  void load_weights(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-                    const bo_t &bo) {
-    _Wqkv = &Wqkv;
-    _bqkv = &bqkv;
-    _Wo = &Wo;
-    _bo = &bo;
-  }
-
-  [[nodiscard]] const Wqkv_t &Wqkv() const { return *_Wqkv; }
-  [[nodiscard]] const bqkv_t &bqkv() const { return *_bqkv; }
-  [[nodiscard]] const Wo_t &Wo() const { return *_Wo; }
-  [[nodiscard]] const bo_t &bo() const { return *_bo; }
-  [[nodiscard]] bool isLoaded() const {
-
-    return _Wqkv != nullptr && _bqkv != nullptr && _Wo != nullptr &&
-           _bo != nullptr;
-  }
-
-  void qkv(dtype *Q, dtype *K, dtype *V, const dtype *input,
-           const int actual_len);
-  void forward(dtype *output, const dtype *input, const dtype *mask,
-               const int actual_len);
+  static void qkv(dtype Q[SEQ_LEN * D_MODEL], dtype K[SEQ_LEN * D_MODEL],
+                  dtype V[SEQ_LEN * D_MODEL],
+                  const dtype input[SEQ_LEN * D_MODEL], const int actual_len,
+                  const Wqkv_t Wqkv, const bqkv_t bqkv);
+  static void forward(dtype output[SEQ_LEN * D_MODEL],
+                      const dtype input[SEQ_LEN * D_MODEL],
+                      const dtype mask[SEQ_LEN * SEQ_LEN], const int actual_len,
+                      const Wqkv_t Wqkv, const bqkv_t bqkv, const Wo_t Wo,
+                      const bo_t bo);
 
 private:
-  const Wqkv_t *_Wqkv{nullptr};
-  const bqkv_t *_bqkv{nullptr};
-  const Wo_t *_Wo{nullptr};
-  const bo_t *_bo{nullptr};
 };
 
 template <typename DType, const int D_MODEL, const int NUM_HEADS,
-          const int MAX_SEQ_LEN>
-class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, void, OPT_NONE> {
+          const int SEQ_LEN>
+class FusedMHA<DType, D_MODEL, NUM_HEADS, SEQ_LEN, void, OPT_NONE> {
 public:
   static_assert(D_MODEL % NUM_HEADS == 0,
                 "D_MODEL must be divisible by NUM_HEADS");
@@ -79,39 +61,21 @@ public:
   static constexpr int d_model = D_MODEL;
   static constexpr int num_heads = NUM_HEADS;
   static constexpr int head_dim = D_MODEL / NUM_HEADS;
-  static constexpr int max_seq_len = MAX_SEQ_LEN;
+  static constexpr int seq_len = SEQ_LEN;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL][D_MODEL];
+  using Wo_t = dtype[D_MODEL * D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   FusedMHA() = default;
-  FusedMHA(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-           const bo_t &bo)
-      : _Wqkv(&Wqkv), _bqkv(&bqkv), _Wo(&Wo), _bo(&bo) {}
   ~FusedMHA() = default;
 
-  void load_weights(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-                    const bo_t &bo) {
-    _Wqkv = &Wqkv;
-    _bqkv = &bqkv;
-    _Wo = &Wo;
-    _bo = &bo;
-  }
-
-  [[nodiscard]] const Wqkv_t &Wqkv() const { return *_Wqkv; }
-  [[nodiscard]] const bqkv_t &bqkv() const { return *_bqkv; }
-  [[nodiscard]] const Wo_t &Wo() const { return *_Wo; }
-  [[nodiscard]] const bo_t &bo() const { return *_bo; }
-  [[nodiscard]] bool isLoaded() const {
-    return _Wqkv != nullptr && _bqkv != nullptr && _Wo != nullptr &&
-           _bo != nullptr;
-  }
-
-  void qkv(dtype *Q, dtype *K, dtype *V, const dtype *input,
-           const int actual_len) {
+  static void qkv(dtype Q[SEQ_LEN * D_MODEL], dtype K[SEQ_LEN * D_MODEL],
+                  dtype V[SEQ_LEN * D_MODEL],
+                  const dtype input[SEQ_LEN * D_MODEL], const int actual_len,
+                  const Wqkv_t Wqkv, const bqkv_t bqkv) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -122,35 +86,38 @@ public:
         dtype sum = dtype(0.0f);
       QKV_DOT_PRODUCT:
         for (int k = 0; k < d_model; k++) {
-          sum += input[i * d_model + k] * (*_Wqkv)[j][k];
+          sum += input[i * d_model + j] * Wqkv[j * d_model + k];
         }
-        sum += (*_bqkv)[j];
+        sum += bqkv[j];
         if (j < d_model) {
           Q[i * d_model + j] = sum;
         } else if (j < 2 * d_model) {
-          K[i * d_model + (j - d_model)] = sum;
+          K[i * d_model + j - d_model] = sum;
         } else {
-          V[i * d_model + (j - 2 * d_model)] = sum;
+          V[i * d_model + j - 2 * d_model] = sum;
         }
       }
     }
   }
 
-  void forward(dtype *output, const dtype *input, const dtype *mask,
-               const int actual_len) {
-    dtype heads[num_heads][max_seq_len][head_dim];
-    dtype attn_scores[num_heads][actual_len][actual_len];
-    dtype attn_output[actual_len * d_model];
-    dtype max_exp_score[num_heads][actual_len];
-    dtype Q[actual_len * d_model];
-    dtype K[actual_len * d_model];
-    dtype V[actual_len * d_model];
+  static void forward(dtype output[SEQ_LEN * D_MODEL],
+                      const dtype input[SEQ_LEN * D_MODEL],
+                      const dtype mask[SEQ_LEN * SEQ_LEN], const int actual_len,
+                      const Wqkv_t Wqkv, const bqkv_t bqkv, const Wo_t Wo,
+                      const bo_t bo) {
+    dtype heads[num_heads][seq_len][head_dim];
+    dtype attn_scores[num_heads][seq_len][seq_len];
+    dtype attn_output[seq_len][d_model];
+    dtype max_exp_score[num_heads][seq_len];
+    dtype Q[SEQ_LEN * d_model];
+    dtype K[SEQ_LEN * d_model];
+    dtype V[SEQ_LEN * d_model];
 
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    qkv(&Q, &K, &V, &input, &actual_len);
 
+    qkv(Q, K, V, input, actual_len, Wqkv, bqkv);
   ATTN_SCORES_HEAD_LOOP:
     for (int h = 0; h < num_heads; h++) {
     ATTN_SCORES_I_LOOP:
@@ -164,7 +131,11 @@ public:
             score += Q[i * d_model + h * head_dim + k] *
                      K[j * d_model + h * head_dim + k];
           }
-          score /= sqrt((dtype)head_dim);
+#ifdef __VITIS_HLS__
+          score = score / hls::sqrt((dtype)head_dim);
+#else
+          score = score / std::sqrt((dtype)head_dim);
+#endif
           if (mask != nullptr) {
             score += mask[i * actual_len + j]; // apply -inf for masking
           }
@@ -185,12 +156,16 @@ public:
       ATTN_SOFTMAX_J_LOOP:
         for (int j = 0; j < actual_len; j++) {
           attn_scores[h][i][j] =
-              exp(attn_scores[h][i][j] - max_exp_score[h][i]);
+#ifdef __VITIS_HLS__
+              hls::exp(attn_scores[h][i][j] - max_exp_score[h][i]);
+#else
+              std::exp(attn_scores[h][i][j] - max_exp_score[h][i]);
+#endif
           sum_exp += attn_scores[h][i][j];
         }
       ATTN_SOFTMAX_NORMALIZE_J_LOOP:
         for (int j = 0; j < actual_len; j++) {
-          attn_scores[h][i][j] /= sum_exp;
+          attn_scores[h][i][j] = attn_scores[h][i][j] / sum_exp;
         }
       }
     }
@@ -204,7 +179,7 @@ public:
           dtype sum = dtype(0.0f);
         ATTN_OUTPUT_J_LOOP:
           for (int j = 0; j < actual_len; j++) {
-            sum += attn_scores[h][i][j] * V[j * d_model + h * head_dim + k];
+            sum += attn_scores[h][i][j] * V[j][h * head_dim + k];
           }
           heads[h][i][k] = sum;
         }
@@ -217,7 +192,7 @@ public:
       for (int h = 0; h < num_heads; h++) {
       CONCAT_HEAD_DIM_LOOP:
         for (int k = 0; k < head_dim; k++) {
-          attn_output[i * d_model + h * head_dim + k] = heads[h][i][k];
+          attn_output[i][h * head_dim + k] = heads[h][i][k];
         }
       }
     }
@@ -229,36 +204,32 @@ public:
         dtype acc = dtype(0.0f);
       OUTPUT_DOT_PRODUCT:
         for (int k = 0; k < d_model; k++) {
-          acc += attn_output[i * d_model + k] * (*_Wo)[j][k];
+          acc += attn_output[i][k] * Wo[j * d_model + k];
         }
-        acc += (*_bo)[j];
+        acc += bo[j];
         output[i * d_model + j] = acc;
       }
     }
   }
 
 private:
-  const Wqkv_t *_Wqkv{nullptr};
-  const bqkv_t *_bqkv{nullptr};
-  const Wo_t *_Wo{nullptr};
-  const bo_t *_bo{nullptr};
 };
 
 template <typename DType, const int D_MODEL, const int NUM_HEADS,
-          const int MAX_SEQ_LEN, typename Config>
-class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
+          const int SEQ_LEN, typename Config>
+class FusedMHA<DType, D_MODEL, NUM_HEADS, SEQ_LEN, Config, OPT_ENABLED> {
   static_assert(D_MODEL % NUM_HEADS == 0,
                 "D_MODEL must be divisible by NUM_HEADS");
   using dtype = DType;
   static constexpr int d_model = D_MODEL;
   static constexpr int num_heads = NUM_HEADS;
   static constexpr int head_dim = D_MODEL / NUM_HEADS;
-  static constexpr int max_seq_len = MAX_SEQ_LEN;
+  static constexpr int seq_len = SEQ_LEN;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL][D_MODEL];
+  using Wo_t = dtype[D_MODEL * D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   static constexpr int unroll_factor = Config::_unroll_factor;
@@ -266,30 +237,12 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
   static constexpr int pipeline_ii = Config::_pipeline_ii;
 
   FusedMHA() = default;
-  FusedMHA(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-           const bo_t &bo)
-      : _Wqkv(&Wqkv), _bqkv(&bqkv), _Wo(&Wo), _bo(&bo) {}
   ~FusedMHA() = default;
 
-  void load_weights(const Wqkv_t &Wqkv, const bqkv_t &bqkv, const Wo_t &Wo,
-                    const bo_t &bo) {
-    _Wqkv = &Wqkv;
-    _bqkv = &bqkv;
-    _Wo = &Wo;
-    _bo = &bo;
-  }
-
-  [[nodiscard]] const Wqkv_t &Wqkv() const { return *_Wqkv; }
-  [[nodiscard]] const bqkv_t &bqkv() const { return *_bqkv; }
-  [[nodiscard]] const Wo_t &Wo() const { return *_Wo; }
-  [[nodiscard]] const bo_t &bo() const { return *_bo; }
-  [[nodiscard]] bool isLoaded() const {
-    return _Wqkv != nullptr && _bqkv != nullptr && _Wo != nullptr &&
-           _bo != nullptr;
-  }
-
-  void qkv(dtype *Q, dtype *K, dtype *V, const dtype *input,
-           const int actual_len) {
+  static void qkv(dtype Q[SEQ_LEN * D_MODEL], dtype K[SEQ_LEN * D_MODEL],
+                  dtype V[SEQ_LEN * D_MODEL],
+                  const dtype input[SEQ_LEN * D_MODEL], const int actual_len,
+                  const Wqkv_t Wqkv, const bqkv_t bqkv) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = Q cyclic factor =                       \
@@ -318,29 +271,32 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-          sum += input[i * d_model + k] * (*_Wqkv)[j][k];
+          sum += input[i * d_model + k] * Wqkv[j * d_model + k];
         }
-        sum += (*_bqkv)[j];
+        sum += bqkv[j];
         if (j < d_model) {
           Q[i * d_model + j] = sum;
         } else if (j < 2 * d_model) {
-          K[i * d_model + (j - d_model)] = sum;
+          K[i * d_model + j - d_model] = sum;
         } else {
-          V[i * d_model + (j - 2 * d_model)] = sum;
+          V[i * d_model + j - 2 * d_model] = sum;
         }
       }
     }
   }
 
-  void forward(dtype *output, const dtype *input, const dtype *mask,
-               const int actual_len) {
-    dtype heads[num_heads][max_seq_len][head_dim];
-    dtype attn_scores[num_heads][actual_len][actual_len];
-    dtype attn_output[actual_len * d_model];
-    dtype max_exp_score[num_heads][actual_len];
-    dtype Q[actual_len * d_model];
-    dtype K[actual_len * d_model];
-    dtype V[actual_len * d_model];
+  void forward(dtype output[SEQ_LEN * D_MODEL],
+               const dtype input[SEQ_LEN * D_MODEL],
+               const dtype mask[SEQ_LEN * SEQ_LEN], const int actual_len,
+               const Wqkv_t Wqkv, const bqkv_t bqkv, const Wo_t Wo,
+               const bo_t bo) {
+    dtype heads[num_heads][seq_len][head_dim];
+    dtype attn_scores[num_heads][seq_len][seq_len];
+    dtype attn_output[seq_len][d_model];
+    dtype max_exp_score[num_heads][seq_len];
+    dtype Q[SEQ_LEN * d_model];
+    dtype K[SEQ_LEN * d_model];
+    dtype V[SEQ_LEN * d_model];
 
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -350,7 +306,7 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
     partition_factor dim = 1
 #endif
 
-    qkv(&Q, &K, &V, &input, &actual_len);
+    qkv(Q, K, V, input, actual_len, Wqkv, bqkv);
   ATTN_SCORES_HEAD_LOOP:
     for (int h = 0; h < num_heads; h++) {
 #ifdef __VITIS_HLS__
@@ -433,7 +389,7 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-            sum += attn_scores[h][i][j] * V[j * d_model + h * head_dim + k];
+            sum += attn_scores[h][i][j] * V[j][h * head_dim + k];
           }
           heads[h][i][k] = sum;
         }
@@ -452,7 +408,7 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-          attn_output[i * d_model + h * head_dim + k] = heads[h][i][k];
+          attn_output[i][h * head_dim + k] = heads[h][i][k];
         }
       }
     }
@@ -470,19 +426,15 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, MAX_SEQ_LEN, Config, OPT_ENABLED> {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-          acc += attn_output[i * d_model + k] * (*_Wo)[j][k];
+          acc += attn_output[i][k] * Wo[j * d_model + k];
         }
-        acc += (*_bo)[j];
+        acc += bo[j];
         output[i * d_model + j] = acc;
       }
     }
   }
 
 private:
-  const Wqkv_t *_Wqkv{nullptr};
-  const bqkv_t *_bqkv{nullptr};
-  const Wo_t *_Wo{nullptr};
-  const bo_t *_bo{nullptr};
 };
 
 } // namespace hls_nn

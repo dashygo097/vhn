@@ -30,7 +30,7 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[n], const dtype input[n]);
+  static void forward(dtype output[N], const dtype input[N]);
 
 private:
 };
@@ -41,7 +41,7 @@ public:
   static constexpr int n = N;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  static void forward(dtype output[n], dtype input[n]) {
+  static void forward(dtype output[N], dtype input[N]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -87,7 +87,7 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[n], dtype input[n]) {
+  static void forward(dtype output[N], dtype input[N]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -139,7 +139,7 @@ public:
   SoftmaxBatched() = default;
   ~SoftmaxBatched() = default;
 
-  static void forward(dtype output[][n], const dtype input[][n],
+  static void forward(dtype output[][N], const dtype input[][N],
                       int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
