@@ -55,14 +55,14 @@ public:
       dtype mean = dtype(0);
     CALC_MEAN:
       for (int j = 0; j < hidden_dim; j++) {
-        mean += input[i * hidden_dim + j];
+        mean += input[i][j];
       }
       mean /= dtype(hidden_dim);
 
       dtype variance = dtype(0);
     CALC_VARIANCE:
       for (int j = 0; j < hidden_dim; j++) {
-        dtype diff = input[i * hidden_dim + j] - mean;
+        dtype diff = input[i][j] - mean;
         variance += diff * diff;
       }
       variance /= dtype(hidden_dim);
@@ -75,8 +75,7 @@ public:
 
     NORMALIZE:
       for (int j = 0; j < hidden_dim; j++) {
-        output[i * hidden_dim + j] =
-            gamma[j] * (input[i * hidden_dim + j] - mean) * inv_std + beta[j];
+        output[i][j] = gamma[j] * (input[i][j] - mean) * inv_std + beta[j];
       }
     }
   }
@@ -126,7 +125,7 @@ public:
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-        mean += input[i * hidden_dim + j];
+        mean += input[i][j];
       }
       mean /= dtype(hidden_dim);
 
@@ -137,7 +136,7 @@ public:
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-        dtype diff = input[i * hidden_dim + j] - mean;
+        dtype diff = input[i][j] - mean;
         variance += diff * diff;
       }
       variance /= dtype(hidden_dim);
@@ -154,8 +153,7 @@ public:
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-        output[i * hidden_dim + j] =
-            gamma[j] * (input[i * hidden_dim + j] - mean) * inv_std + beta[j];
+        output[i][j] = gamma[j] * (input[i][j] - mean) * inv_std + beta[j];
       }
     }
   }

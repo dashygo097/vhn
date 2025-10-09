@@ -72,13 +72,8 @@ public:
         for (int h = 0; h < height; h++) {
         WIDTH_LOOP:
           for (int w = 0; w < width; w++) {
-            output[b * channels * height * width + c * height * width +
-                   h * width + w] =
-                weight[c] *
-                    (input[b * channels * height * width + c * height * width +
-                           h * width + w] -
-                     running_mean[c]) *
-                    inv_std +
+            output[b][c][h][w] =
+                weight[c] * (input[b][c][h][w] - running_mean[c]) * inv_std +
                 bias[c];
           }
         }
@@ -150,13 +145,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-            output[b * channels * height * width + c * height * width +
-                   h * width + w] =
-                weight[c] *
-                    (input[b * channels * height * width + c * height * width +
-                           h * width + w] -
-                     running_mean[c]) *
-                    inv_std +
+            output[b][c][h][w] =
+                weight[c] * (input[b][c][h][w] - running_mean[c]) * inv_std +
                 bias[c];
           }
         }

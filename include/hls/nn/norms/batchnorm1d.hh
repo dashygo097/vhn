@@ -61,9 +61,8 @@ public:
         dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
 #endif
 
-        output[b * channels + c] =
-            weight[c] * (input[b * channels + c] - running_mean[c]) * inv_std +
-            bias[c];
+        output[b][c] =
+            weight[c] * (input[b][c] - running_mean[c]) * inv_std + bias[c];
       }
     }
   }
@@ -122,9 +121,8 @@ public:
         dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
 #endif
 
-        output[b * channels + c] =
-            weight[c] * (input[b * channels + c] - running_mean[c]) * inv_std +
-            bias[c];
+        output[b][c] =
+            weight[c] * (input[b][c] - running_mean[c]) * inv_std + bias[c];
       }
     }
   }
