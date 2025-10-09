@@ -12,14 +12,12 @@
 #include <hls_math.h>
 #endif
 
-// FIXME: Weak against Config with different OPT_LEVEL
 #define ACT_DEF(ACT_NAME)                                                      \
   template <typename DType, int N, typename Config = void,                     \
             OptLevel OPT_LEVEL = OPT_NONE>                                     \
   using ACT_NAME =                                                             \
       Elementwise<DType, ACT_NAME##Impl<DType, N>, N, Config, OPT_LEVEL>;
 
-// FIXME: Weak against Config with different OPT_LEVEL
 #define ACT_TB_DEF(ACT_NAME)                                                   \
   template <const int N> class ACT_NAME##TestCase {                            \
   public:                                                                      \

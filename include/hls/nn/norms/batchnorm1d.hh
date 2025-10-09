@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../opt_level.hh"
+#include <cmath>
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -18,11 +19,11 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[][channels], const dtype input[][channels],
-                      const dtype weight[channels], const dtype bias[channels],
-                      const dtype running_mean[channels],
-                      const dtype running_var[channels],
-                      const dtype eps = dtype(1e-5));
+  static void forward(dtype output[][CHANNELS], const dtype input[][CHANNELS],
+                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
+                      const dtype running_mean[CHANNELS],
+                      const dtype running_var[CHANNELS], const int batch_size,
+                      const float epsilon = 1e-5);
 
 private:
 };
@@ -37,11 +38,35 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[][channels], const dtype input[][channels],
-                      const dtype weight[channels], const dtype bias[channels],
-                      const dtype running_mean[channels],
-                      const dtype running_var[channels],
-                      const dtype eps = dtype(1e-5)) {}
+  static void forward(dtype output[][CHANNELS], const dtype input[][CHANNELS],
+                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
+                      const dtype running_mean[CHANNELS],
+                      const dtype running_var[CHANNELS], const int batch_size,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+
+    CHANNEL_LOOP:
+      for (int c = 0; c < channels; c++) {
+#ifdef __VITIS_HLS__
+        dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+#else
+        dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+#endif
+
+        output[b * channels + c] =
+            weight[c] * (input[b * channels + c] - running_mean[c]) * inv_std +
+            bias[c];
+      }
+    }
+  }
 
 private:
 };
@@ -60,11 +85,49 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[][channels], const dtype input[][channels],
-                      const dtype weight[channels], const dtype bias[channels],
-                      const dtype running_mean[channels],
-                      const dtype running_var[channels],
-                      const dtype eps = dtype(1e-5)) {}
+  static void forward(dtype output[][CHANNELS], const dtype input[][CHANNELS],
+                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
+                      const dtype running_mean[CHANNELS],
+                      const dtype running_var[CHANNELS], const int batch_size,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
+    partition_factor dim = 2
+#pragma HLS ARRAY_PARTITION variable = output cyclic factor =                  \
+    partition_factor dim = 2
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = running_mean cyclic factor =            \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = running_var cyclic factor =             \
+    partition_factor
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+
+    CHANNEL_LOOP:
+      for (int c = 0; c < channels; c++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+#ifdef __VITIS_HLS__
+        dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+#else
+        dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+#endif
+
+        output[b * channels + c] =
+            weight[c] * (input[b * channels + c] - running_mean[c]) * inv_std +
+            bias[c];
+      }
+    }
+  }
 
 private:
 };
