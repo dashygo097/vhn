@@ -1,4 +1,5 @@
 #pragma once
+#include "./hls/hls_config.hh"
 #include "./hls/models/models.hh"
 #include "./hls/nn/nn.hh"
 #include "./hls/opt_level.hh"

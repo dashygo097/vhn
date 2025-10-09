@@ -7,12 +7,6 @@
 #endif
 
 namespace hls_nn {
-template <typename WQKV_CONFIG, typename WO_CONFIG, typename SOFTMAX_CONFIG>
-struct MulHeadAttnHLSConfig {
-  using Wqkv_config = WQKV_CONFIG;
-  using Wo_config = WO_CONFIG;
-  using Softmax_config = SOFTMAX_CONFIG;
-};
 template <typename DType, const int D_MODEL, const int NUM_HEADS,
           const int MAX_SEQ_LEN, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
 class MulHeadAttn {

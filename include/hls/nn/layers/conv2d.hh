@@ -6,14 +6,6 @@
 #endif
 
 namespace hls_nn {
-template <const int UNROLL_FACTOR, const int PARTITION_FACTOR,
-          const int PIPELINE_II>
-struct Conv2dHLSConfig {
-  static constexpr int _unroll_factor = UNROLL_FACTOR;
-  static constexpr int _partition_factor = PARTITION_FACTOR;
-  static constexpr int _pipeline_ii = PIPELINE_II;
-};
-
 template <typename DType, const int IN_CHANNELS, const int OUT_CHANNELS,
           const int KERNEL_SIZE, const int PADDING, const int WIDTH,
           const int HEIGHT, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
