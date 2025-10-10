@@ -66,15 +66,24 @@ public:
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const W1_t w1, const b1_t b1, const W2_t w2,
                       const b2_t b2, const int actual_len) {
-#ifdef __VITIS_HLS_
-#pragma HLS INLINE off
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
 #endif
-    dtype fc1_out[actual_len][d_ff];
-    dtype act_out[actual_len][d_ff];
+    dtype fc1_out[d_ff];
+    dtype act_out[d_ff];
 
-    fc1::forward(fc1_out, input, w1, b1, actual_len);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, w2, b2, actual_len);
+  BATCH_LOOP:
+    for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      fc1::forward(fc1_out,
+                   *reinterpret_cast<const dtype(*)[d_model]>(&input[i]), w1,
+                   b1);
+      act::forward(act_out, fc1_out);
+      fc2::forward(*reinterpret_cast<dtype(*)[d_model]>(&output[i]), act_out,
+                   w2, b2);
+    }
   }
 
 private:
@@ -117,12 +126,12 @@ public:
                       const int actual_len, const W1_t w1, const b1_t b1,
                       const W2_t w2, const b2_t b2) {
 #ifdef __VITIS_HLS__
-#pragma HLS INLINE off
 #pragma HLS DATAFLOW
 #endif
     dtype fc1_out[d_ff];
     dtype act_out[d_ff];
 
+  BATCH_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
