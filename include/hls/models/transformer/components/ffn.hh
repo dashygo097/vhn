@@ -72,7 +72,7 @@ public:
     dtype fc1_out[d_ff];
     dtype act_out[d_ff];
 
-  BATCH_LOOP:
+  SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
@@ -128,7 +128,7 @@ public:
     dtype fc1_out[d_ff];
     dtype act_out[d_ff];
 
-  BATCH_LOOP:
+  SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
