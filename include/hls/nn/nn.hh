@@ -3,7 +3,7 @@
 // Tools
 
 // Activations
-#include "./acts/declarations.hh"
+#include "./acts/acts.hh"
 
 // Layers
 #include "./elementwise.hh"

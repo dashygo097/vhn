@@ -198,7 +198,6 @@ private:
   std::uniform_real_distribution<float> _dist;
 };
 
-// FIXME: Weak against Config with different OPT_LEVEL
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
 class LinearTestbench {
