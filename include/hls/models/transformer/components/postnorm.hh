@@ -25,6 +25,22 @@ public:
   PostNorm() = default;
   ~PostNorm() = default;
 
+private:
+};
+
+template <typename DType, const int D_MODEL>
+class PostNorm<DType, D_MODEL, void, OPT_NONE> {
+public:
+  using dtype = DType;
+  static constexpr int d_model = D_MODEL;
+  static constexpr OptLevel opt_level = OPT_NONE;
+
+  using gamma_t = dtype[D_MODEL];
+  using beta_t = dtype[D_MODEL];
+
+  PostNorm() = default;
+  ~PostNorm() = default;
+
   using norm = LayerNorm<DType, D_MODEL, void, OPT_NONE>;
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
@@ -39,6 +55,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
+    ADD_LOOP:
       for (int j = 0; j < D_MODEL; j++) {
         sum[j] = input[i][j] + residual[i][j];
       }
@@ -49,30 +66,12 @@ public:
 private:
 };
 
-template <typename DType, const int D_MODEL>
-class PostNorm<DType, D_MODEL, void, OPT_NONE> {
-public:
-  using dtype = DType;
-  static constexpr int d_model = D_MODEL;
-
-  using gamma_t = dtype[D_MODEL];
-  using beta_t = dtype[D_MODEL];
-
-  PostNorm() = default;
-  ~PostNorm() = default;
-
-  static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
-                      const dtype residual[][D_MODEL], const int actual_len,
-                      const gamma_t gamma, const beta_t beta);
-
-private:
-};
-
 template <typename DType, const int D_MODEL, typename Config>
 class PostNorm<DType, D_MODEL, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int d_model = D_MODEL;
+  static constexpr OptLevel opt_level = OPT_ENABLED;
 
   using gamma_t = dtype[D_MODEL];
   using beta_t = dtype[D_MODEL];
@@ -100,6 +99,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
+    ADD_LOOP:
       for (int j = 0; j < D_MODEL; j++) {
         sum[j] = input[i][j] + residual[i][j];
       }
