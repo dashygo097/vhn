@@ -23,6 +23,7 @@ public:
   ~Softmax() = default;
 
   static void forward(dtype output[N], const dtype input[N]);
+  static void forward(dtype output[][N], const dtype input[][N]);
 
 private:
 };
@@ -59,6 +60,21 @@ public:
   NORMALIZE:
     for (int i = 0; i < n; i++) {
       output[i] = exp_val[i] * inv_sum;
+    }
+  }
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward(*reinterpret_cast<dtype(*)[N]>(output[b]),
+              *reinterpret_cast<const dtype(*)[N]>(input[b]));
     }
   }
 
@@ -119,31 +135,19 @@ public:
       output[i] = exp_val[i] * inv_sum;
     }
   }
-};
-
-template <typename DType, int N, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class SoftmaxBatched {
-public:
-  using dtype = DType;
-  static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
-
-  SoftmaxBatched() = default;
-  ~SoftmaxBatched() = default;
 
   static void forward(dtype output[][N], const dtype input[][N],
                       int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
 #endif
-
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-
-      Softmax<DType, N, Config, OPT_LEVEL>::forward(output[b], input[b]);
+      forward(*reinterpret_cast<dtype(*)[N]>(output[b]),
+              *reinterpret_cast<const dtype(*)[N]>(input[b]));
     }
   }
 };
