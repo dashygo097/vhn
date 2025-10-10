@@ -8,6 +8,7 @@
 
 namespace hls_nn {
 template <typename Dtype, int N> class GeLUImpl {
+public:
   using dtype = Dtype;
   static constexpr int n = N;
 

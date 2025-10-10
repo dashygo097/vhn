@@ -5,6 +5,7 @@
 
 namespace hls_nn {
 template <typename DType, int N> class ReLUImpl {
+public:
   using dtype = DType;
   static constexpr int n = N;
 

@@ -312,9 +312,7 @@ class FusedMHA<DType, D_MODEL, NUM_HEADS, Config, OPT_ENABLED> {
             score += Q[i][h * head_dim + k] * K[j][h * head_dim + k];
           }
           score /= sqrt((dtype)head_dim);
-          if (mask != nullptr) {
-            score += mask[i * actual_len + j]; // apply -inf for masking
-          }
+          score += mask[i * actual_len + j]; // apply -inf for masking
 
           if (score > row_max) {
             row_max = score;

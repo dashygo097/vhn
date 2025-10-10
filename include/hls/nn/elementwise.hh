@@ -112,4 +112,36 @@ public:
 private:
 };
 
+template <typename DType, typename ImplType, const int N, typename Config,
+          OptLevel OPT_LEVEL = OPT_NONE>
+class ElementwiseBatched {
+public:
+  using dtype = DType;
+  using impl = ImplType;
+  static constexpr int n = N;
+  static constexpr OptLevel opt_level = OPT_LEVEL;
+
+  ElementwiseBatched() = default;
+  ~ElementwiseBatched() = default;
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      Elementwise<DType, ImplType, N, Config, OPT_LEVEL>::forward(
+          *reinterpret_cast<dtype(*)[N]>(&output[b]),
+          *reinterpret_cast<const dtype(*)[N]>(&input[b]));
+    }
+  }
+
+private:
+};
+
 } // namespace hls_nn

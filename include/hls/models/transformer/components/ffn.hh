@@ -9,7 +9,8 @@
 #endif
 
 namespace hls_nn {
-template <typename FC1_Config, typename ACT_Config, typename FC2_Config>
+template <typename FC1_Config = void, typename ACT_Config = void,
+          typename FC2_Config = void>
 struct FFNConfig {
   using fc1 = FC1_Config;
   using act = ACT_Config;
@@ -18,7 +19,7 @@ struct FFNConfig {
 
 template <typename DType, const int D_MODEL, const int D_FF,
           template <typename, int, typename, OptLevel> class ActLayer,
-          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config = FFNConfig<>, OptLevel OPT_LEVEL = OPT_NONE>
 class FFN {
 public:
   using dtype = DType;
@@ -93,6 +94,13 @@ public:
   using act_config = typename Config::act;
   using fc2_config = typename Config::fc2;
 
+  static constexpr OptLevel fc1_opt =
+      std::is_same<fc1_config, void>::value ? OPT_NONE : OPT_ENABLED;
+  static constexpr OptLevel act_opt =
+      std::is_same<act_config, void>::value ? OPT_NONE : OPT_ENABLED;
+  static constexpr OptLevel fc2_opt =
+      std::is_same<fc2_config, void>::value ? OPT_NONE : OPT_ENABLED;
+
   FFN() = default;
   ~FFN() = default;
 
@@ -101,25 +109,31 @@ public:
   using W2_t = dtype[D_MODEL][D_FF];
   using b2_t = dtype[D_MODEL];
 
-  using fc1 =
-      LinearBatched<DType, D_MODEL, D_FF, decltype(Config::fc1), OPT_ENABLED>;
-  using act = ActLayer<DType, D_FF, decltype(Config::act), OPT_ENABLED>;
-  using fc2 =
-      LinearBatched<DType, D_FF, D_MODEL, decltype(Config::fc2), OPT_ENABLED>;
+  using fc1 = Linear<DType, D_MODEL, D_FF, fc1_config, fc1_opt>;
+  using act = ActLayer<DType, D_FF, act_config, act_opt>;
+  using fc2 = Linear<DType, D_FF, D_MODEL, fc2_config, fc2_opt>;
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
-                      const W1_t w1, const b1_t b1, const W2_t w2,
-                      const b2_t b2, const int actual_len) {
+                      const int actual_len, const W1_t w1, const b1_t b1,
+                      const W2_t w2, const b2_t b2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+#pragma HLS DATAFLOW
 #endif
+    dtype fc1_out[d_ff];
+    dtype act_out[d_ff];
 
-    dtype fc1_out[actual_len][d_ff];
-    dtype act_out[actual_len][d_ff];
-
-    fc1::forward(fc1_out, input, w1, b1, actual_len);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, w2, b2, actual_len);
+    for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      fc1::forward(fc1_out,
+                   *reinterpret_cast<const dtype(*)[d_model]>(&input[i]), w1,
+                   b1);
+      act::forward(act_out, fc1_out);
+      fc2::forward(*reinterpret_cast<dtype(*)[d_model]>(&output[i]), act_out,
+                   w2, b2);
+    }
   }
 
 private:
