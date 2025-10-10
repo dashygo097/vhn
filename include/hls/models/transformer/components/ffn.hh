@@ -59,9 +59,9 @@ public:
   using W2_t = dtype[D_MODEL][D_FF];
   using b2_t = dtype[D_MODEL];
 
-  using fc1 = LinearBatched<DType, D_MODEL, D_FF, void, OPT_NONE>;
+  using fc1 = Linear<DType, D_MODEL, D_FF, void, OPT_NONE>;
   using act = ActLayer<DType, D_FF, void, OPT_NONE>;
-  using fc2 = LinearBatched<DType, D_FF, D_MODEL, void, OPT_NONE>;
+  using fc2 = Linear<DType, D_FF, D_MODEL, void, OPT_NONE>;
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const W1_t w1, const b1_t b1, const W2_t w2,
@@ -77,12 +77,9 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      fc1::forward(fc1_out,
-                   *reinterpret_cast<const dtype(*)[d_model]>(&input[i]), w1,
-                   b1);
+      fc1::forward(fc1_out, input[i], w1, b1);
       act::forward(act_out, fc1_out);
-      fc2::forward(*reinterpret_cast<dtype(*)[d_model]>(&output[i]), act_out,
-                   w2, b2);
+      fc2::forward(output[i], act_out, w2, b2);
     }
   }
 
@@ -136,12 +133,9 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      fc1::forward(fc1_out,
-                   *reinterpret_cast<const dtype(*)[d_model]>(&input[i]), w1,
-                   b1);
+      fc1::forward(fc1_out, input[i], w1, b1);
       act::forward(act_out, fc1_out);
-      fc2::forward(*reinterpret_cast<dtype(*)[d_model]>(&output[i]), act_out,
-                   w2, b2);
+      fc2::forward(output[i], act_out, w2, b2);
     }
   }
 

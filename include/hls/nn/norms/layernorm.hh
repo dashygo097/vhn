@@ -20,6 +20,11 @@ public:
   LayerNorm() = default;
   ~LayerNorm() = default;
 
+  static void forward(dtype output[HIDDEN_DIM], const dtype input[HIDDEN_DIM],
+                      const dtype gamma[HIDDEN_DIM],
+                      const dtype beta[HIDDEN_DIM], const int seq_len,
+                      const float epsilon = 1e-5);
+
   static void forward(dtype output[][HIDDEN_DIM],
                       const dtype input[][HIDDEN_DIM],
                       const dtype gamma[HIDDEN_DIM],
@@ -38,45 +43,54 @@ public:
   LayerNorm() = default;
   ~LayerNorm() = default;
 
+  static void forward(dtype output[HIDDEN_DIM], const dtype input[HIDDEN_DIM],
+                      const dtype gamma[HIDDEN_DIM],
+                      const dtype beta[HIDDEN_DIM],
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    dtype mean = dtype(0);
+  CALC_MEAN:
+    for (int j = 0; j < hidden_dim; j++) {
+      mean += input[j];
+    }
+    mean /= dtype(hidden_dim);
+    dtype variance = dtype(0);
+  CALC_VARIANCE:
+    for (int j = 0; j < hidden_dim; j++) {
+      dtype diff = input[j] - mean;
+      variance += diff * diff;
+    }
+    variance /= dtype(hidden_dim);
+#ifdef __VITIS_HLS__
+    dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
+#else
+    dtype inv_std = dtype(1.0) / std::sqrt(variance + dtype(epsilon));
+#endif
+
+  NORMALIZE:
+    for (int j = 0; j < hidden_dim; j++) {
+      output[j] = gamma[j] * (input[j] - mean) * inv_std + beta[j];
+    }
+  }
+
   static void forward(dtype output[][HIDDEN_DIM],
                       const dtype input[][HIDDEN_DIM],
                       const dtype gamma[HIDDEN_DIM],
                       const dtype beta[HIDDEN_DIM], const int seq_len,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
-#pragma HLS INLINE off
+#pragma HLS DATAFLOW
 #endif
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-
-      dtype mean = dtype(0);
-    CALC_MEAN:
-      for (int j = 0; j < hidden_dim; j++) {
-        mean += input[i][j];
-      }
-      mean /= dtype(hidden_dim);
-
-      dtype variance = dtype(0);
-    CALC_VARIANCE:
-      for (int j = 0; j < hidden_dim; j++) {
-        dtype diff = input[i][j] - mean;
-        variance += diff * diff;
-      }
-      variance /= dtype(hidden_dim);
-
-#ifdef __VITIS_HLS__
-      dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
-#else
-      dtype inv_std = dtype(1.0) / std::sqrt(variance + dtype(epsilon));
-#endif
-
-    NORMALIZE:
-      for (int j = 0; j < hidden_dim; j++) {
-        output[i][j] = gamma[j] * (input[i][j] - mean) * inv_std + beta[j];
-      }
+      forward(*reinterpret_cast<dtype(*)[HIDDEN_DIM]>(&output[i]),
+              *reinterpret_cast<const dtype(*)[HIDDEN_DIM]>(&input[i]), gamma,
+              beta, epsilon);
     }
   }
 
@@ -97,10 +111,9 @@ public:
   LayerNorm() = default;
   ~LayerNorm() = default;
 
-  static void forward(dtype output[][HIDDEN_DIM],
-                      const dtype input[][HIDDEN_DIM],
+  static void forward(dtype output[HIDDEN_DIM], const dtype input[HIDDEN_DIM],
                       const dtype gamma[HIDDEN_DIM],
-                      const dtype beta[HIDDEN_DIM], const int seq_len,
+                      const dtype beta[HIDDEN_DIM],
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -112,49 +125,62 @@ public:
 #pragma HLS ARRAY_PARTITION variable = beta cyclic factor = partition_factor
 #endif
 
+    dtype mean = dtype(0);
+  CALC_MEAN:
+    for (int i = 0; i < hidden_dim; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+      mean += input[i];
+    }
+    mean /= dtype(hidden_dim);
+
+    dtype variance = dtype(0);
+  CALC_VARIANCE:
+    for (int i = 0; i < hidden_dim; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+      dtype diff = input[i] - mean;
+      variance += diff * diff;
+    }
+    variance /= dtype(hidden_dim);
+
+#ifdef __VITIS_HLS__
+    dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
+#else
+    dtype inv_std = dtype(1.0) / std::sqrt(variance + dtype(epsilon));
+#endif
+
+  NORMALIZE:
+    for (int i = 0; i < hidden_dim; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+      output[i] = gamma[i] * (input[i] - mean) * inv_std + beta[i];
+    }
+  }
+
+  static void forward(dtype output[][HIDDEN_DIM],
+                      const dtype input[][HIDDEN_DIM],
+                      const dtype gamma[HIDDEN_DIM],
+                      const dtype beta[HIDDEN_DIM], const int seq_len,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#endif
+
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-
-      dtype mean = dtype(0);
-    CALC_MEAN:
-      for (int j = 0; j < hidden_dim; j++) {
-#ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
-#pragma HLS PIPELINE II = pipeline_ii
-#endif
-        mean += input[i][j];
-      }
-      mean /= dtype(hidden_dim);
-
-      dtype variance = dtype(0);
-    CALC_VARIANCE:
-      for (int j = 0; j < hidden_dim; j++) {
-#ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
-#pragma HLS PIPELINE II = pipeline_ii
-#endif
-        dtype diff = input[i][j] - mean;
-        variance += diff * diff;
-      }
-      variance /= dtype(hidden_dim);
-
-#ifdef __VITIS_HLS__
-      dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
-#else
-      dtype inv_std = dtype(1.0) / std::sqrt(variance + dtype(epsilon));
-#endif
-
-    NORMALIZE:
-      for (int j = 0; j < hidden_dim; j++) {
-#ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
-#pragma HLS PIPELINE II = pipeline_ii
-#endif
-        output[i][j] = gamma[j] * (input[i][j] - mean) * inv_std + beta[j];
-      }
+      forward(*reinterpret_cast<dtype(*)[HIDDEN_DIM]>(&output[i]),
+              *reinterpret_cast<const dtype(*)[HIDDEN_DIM]>(&input[i]), gamma,
+              beta, epsilon);
     }
   }
 

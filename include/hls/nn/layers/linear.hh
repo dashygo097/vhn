@@ -28,6 +28,11 @@ public:
                       const dtype weight[OUT_FEATURES][IN_FEATURES],
                       const dtype bias[OUT_FEATURES]);
 
+  static void forward(dtype output[][OUT_FEATURES],
+                      const dtype input[][IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES]);
+
 private:
 };
 
@@ -58,6 +63,25 @@ public:
         acc += input[j] * weight[i][j];
       }
       output[i] = acc + bias[i];
+    }
+  }
+
+  static void forward(dtype output[][OUT_FEATURES],
+                      const dtype input[][IN_FEATURES],
+                      const dtype weight[OUT_FEATURES][IN_FEATURES],
+                      const dtype bias[OUT_FEATURES], const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward(*reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
+              *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
+              bias);
     }
   }
 
@@ -111,25 +135,10 @@ public:
     }
   }
 
-private:
-};
-
-template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
-          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class LinearBatched {
-public:
-  using dtype = DType;
-  static constexpr int in_features = IN_FEATURES;
-  static constexpr int out_features = OUT_FEATURES;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
-
-  LinearBatched() = default;
-  ~LinearBatched() = default;
-
   static void forward(dtype output[][OUT_FEATURES],
                       const dtype input[][IN_FEATURES],
                       const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES], int batch_size) {
+                      const dtype bias[OUT_FEATURES], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
 #endif
@@ -139,10 +148,9 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_LEVEL>::forward(
-          *reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
-          *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
-          bias);
+      forward(*reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
+              *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
+              bias);
     }
   }
 
