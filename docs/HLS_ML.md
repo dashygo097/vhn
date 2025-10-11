@@ -53,8 +53,9 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
 
 ##### Basic Kernels
 
+- [x] `MLP`
 - [x] `Elementwise`
-- [ ] `Reduce`
+- [x] `Reduce`
 - [x] `Layers`
   - [x] `Linear`
   - [x] `Softmax`
