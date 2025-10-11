@@ -6,12 +6,29 @@
 #endif
 
 namespace hls_nn {
+template <const int UNROLL_FACTOR, const int PARTITION_FACTOR,
+          const int PIPELINE_II, const bool _USE_REDUCE_TREE = true>
+struct ReduceConfig {
+  static constexpr int _unroll_factor = UNROLL_FACTOR;
+  static constexpr int _partition_factor = PARTITION_FACTOR;
+  static constexpr int _pipeline_ii = PIPELINE_II;
+  static constexpr bool _use_reduce_tree = _USE_REDUCE_TREE;
+};
+
 template <typename DType, typename ImplType, int N, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
 class Reduce;
 
+constexpr int log2_ceil(int x) {
+  return (x <= 1) ? 0 : 1 + log2_ceil((x + 1) / 2);
+}
+constexpr bool is_power_of_2(int x) { return (x & (x - 1)) == 0; }
+constexpr int next_power_of_2(int x) {
+  return is_power_of_2(x) ? x : 1 << log2_ceil(x);
+}
+
 // ============================================================================
-// Non-optimized version (OPT_NONE)
+// Non-optimized version (OPT_NONE) - Always Sequential
 // ============================================================================
 template <typename DType, typename ImplType, int N>
 class Reduce<DType, ImplType, N, void, OPT_NONE> {
@@ -28,14 +45,14 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    return forward_1d_impl(input);
+    return forward_sequential(input);
   }
 
   static void forward(dtype &output, const dtype input[N]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    output = forward_1d_impl(input);
+    output = forward_sequential(input);
   }
 
   static void forward(dtype output[], const dtype input[][N],
@@ -49,7 +66,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_1d_impl(input[b]);
+      output[b] = forward_sequential(input[b]);
     }
   }
 
@@ -63,49 +80,19 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_1d_impl(&input[b * N]);
+      output[b] = forward_sequential(&input[b * N]);
     }
-  }
-
-  template <int AXIS>
-  static void forward_axis(dtype output[], const dtype input[][N],
-                           const int batch_size) {
-    static_assert(AXIS == 1,
-                  "For 2D input, only AXIS=1 (reduce N) is supported");
-    forward(output, input, batch_size);
-  }
-
-  static dtype forward_global(const dtype input[][N], const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#endif
-    dtype global_acc = input[0][0];
-    int total_count = 0;
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-    ELEMENT_LOOP:
-      for (int i = 0; i < N; i++) {
-        global_acc = impl::kernel(global_acc, input[b][i]);
-        total_count++;
-      }
-    }
-
-    return impl::finalize(global_acc, total_count);
   }
 
 private:
-  static dtype forward_1d_impl(const dtype *input) {
+  static dtype forward_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype acc = input[0];
+    dtype acc = impl::init_value();
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
-#ifdef __VITIS_HLS__
-#pragma HLS PIPELINE off
-#endif
       acc = impl::kernel(acc, input[i]);
     }
 
@@ -114,7 +101,7 @@ private:
 };
 
 // ============================================================================
-// Optimized version (OPT_ENABLED)
+// Optimized version (OPT_ENABLED) - Sequential or Tree based on Config
 // ============================================================================
 template <typename DType, typename ImplType, int N, typename Config>
 class Reduce<DType, ImplType, N, Config, OPT_ENABLED> {
@@ -127,7 +114,10 @@ public:
   static constexpr int unroll_factor = Config::_unroll_factor;
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
-  static constexpr bool use_reduce_tree = Config::_use_reduce_tree;
+  static constexpr bool use_tree = Config::_use_tree;
+
+  static constexpr int num_stages = log2_ceil(N);
+  static constexpr int padded_n = next_power_of_2(N);
 
   Reduce() = default;
   ~Reduce() = default;
@@ -136,14 +126,18 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    return forward_1d_impl(input);
+    if constexpr (use_tree) {
+      return forward_tree(input);
+    } else {
+      return forward_sequential(input);
+    }
   }
 
   static void forward(dtype &output, const dtype input[N]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    output = forward_1d_impl(input);
+    output = forward(input);
   }
 
   static void forward(dtype output[], const dtype input[][N],
@@ -157,7 +151,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_1d_impl(input[b]);
+      output[b] = forward(input[b]);
     }
   }
 
@@ -171,51 +165,17 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_1d_impl(&input[b * N]);
+      output[b] = forward(&input[b * N]);
     }
-  }
-
-  template <int AXIS>
-  static void forward_axis(dtype output[], const dtype input[][N],
-                           const int batch_size) {
-    static_assert(AXIS == 1, "For 2D input, only AXIS=1 is supported");
-    forward(output, input, batch_size);
-  }
-
-  static dtype forward_global(const dtype input[][N], const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#endif
-    dtype global_acc = input[0][0];
-    int total_count = 0;
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-    ELEMENT_LOOP:
-      for (int i = 0; i < N; i++) {
-#ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = pipeline_ii
-#pragma HLS UNROLL factor = unroll_factor
-#endif
-        global_acc = impl::kernel(global_acc, input[b][i]);
-        total_count++;
-      }
-    }
-
-    return impl::finalize(global_acc, total_count);
   }
 
 private:
-  // Core reduction with optimizations
-  static dtype forward_1d_impl(const dtype *input) {
+  static dtype forward_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #endif
-    dtype acc = input[0];
+    dtype acc = impl::init_value();
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
@@ -227,6 +187,74 @@ private:
     }
 
     return impl::finalize(acc, N);
+  }
+
+  static dtype forward_tree(const dtype *input) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE
+#pragma HLS ARRAY_PARTITION variable = input complete
+#endif
+
+    // Pad input if not power of 2
+    dtype padded_input[padded_n];
+#ifdef __VITIS_HLS__
+#pragma HLS ARRAY_PARTITION variable = padded_input complete
+#endif
+
+  PAD_LOOP:
+    for (int i = 0; i < padded_n; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL
+#endif
+      if (i < N) {
+        padded_input[i] = input[i];
+      } else {
+        padded_input[i] = impl::init_value();
+      }
+    }
+
+    dtype result = forward_tree_recursive<padded_n>(padded_input);
+    return impl::finalize(result, N);
+  }
+
+  template <int SIZE>
+  static dtype forward_tree_recursive(const dtype input[SIZE]) {
+    if constexpr (SIZE == 1) {
+      return input[0];
+    } else {
+      constexpr int HALF = SIZE / 2;
+      dtype left_result[HALF];
+      dtype right_result[HALF];
+
+#ifdef __VITIS_HLS__
+#pragma HLS ARRAY_PARTITION variable = left_result complete
+#pragma HLS ARRAY_PARTITION variable = right_result complete
+#endif
+
+    TREE_LEVEL:
+      for (int i = 0; i < HALF; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL
+#endif
+        left_result[i] = input[2 * i];
+        right_result[i] = input[2 * i + 1];
+      }
+
+      dtype combined[HALF];
+#ifdef __VITIS_HLS__
+#pragma HLS ARRAY_PARTITION variable = combined complete
+#endif
+
+    COMBINE:
+      for (int i = 0; i < HALF; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL
+#endif
+        combined[i] = impl::kernel(left_result[i], right_result[i]);
+      }
+
+      return forward_tree_recursive<HALF>(combined);
+    }
   }
 };
 
