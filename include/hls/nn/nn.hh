@@ -1,12 +1,16 @@
 #pragma once
 
-// Tools
+// Common
+#include "./decls.hh"
+#include "./elementwise.hh"
+#include "./operators.hh"
+#include "./reduce.hh"
 
 // Activations
 #include "./acts/acts.hh"
 
 // Layers
-#include "./elementwise.hh"
+#include "./decls.hh"
 #include "./layers/conv1d.hh"
 #include "./layers/conv2d.hh"
 #include "./layers/linear.hh"

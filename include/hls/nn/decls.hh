@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../tb/tb.hh"
-#include "../elementwise.hh"
+#include "../tb/tb.hh"
+#include "./elementwise.hh"
 #include <algorithm>
 #include <random>
 
@@ -9,20 +9,17 @@
 #include <hls_math.h>
 #endif
 
-#define ACT_DEF(ACT_NAME)                                                      \
+#define ELEMENTWISE_DEF(ELEMENTWISE_NAME)                                      \
   template <typename DType, int N, typename Config = void,                     \
             OptLevel OPT_LEVEL = OPT_NONE>                                     \
-  using ACT_NAME =                                                             \
-      Elementwise<DType, ACT_NAME##Impl<DType, N>, N, Config, OPT_LEVEL>;      \
-  template <typename DType, int N, typename Config = void,                     \
-            OptLevel OPT_LEVEL = OPT_NONE>                                     \
-  using ACT_NAME##2D = ElementwiseBatched<DType, ACT_NAME##Impl<DType, N>, N,  \
-                                          Config, OPT_LEVEL>;
+  using ELEMENTWISE_NAME =                                                     \
+      Elementwise<DType, ELEMENTWISE_NAME##Impl<DType, N>, N, Config,          \
+                  OPT_LEVEL>;
 
-#define ACT_TB_DEF(ACT_NAME)                                                   \
-  template <const int N> class ACT_NAME##TestCase {                            \
+#define ELEMENTWISE_TB_DEF(ELEMENTWISE_NAME)                                   \
+  template <const int N> class ELEMENTWISE_NAME##TestCase {                    \
   public:                                                                      \
-    ACT_NAME##TestCase(unsigned seed = 42)                                     \
+    ELEMENTWISE_NAME##TestCase(unsigned seed = 42)                             \
         : _seed(seed), _dist(-1.0f, 1.0f) {}                                   \
                                                                                \
     void generate_random_input(float input[N]) {                               \
@@ -40,32 +37,32 @@
                                                                                \
   template <typename DType, const int N, typename Config = void,               \
             OptLevel OPT_LEVEL = OPT_NONE>                                     \
-  class ACT_NAME##Testbench {                                                  \
+  class ELEMENTWISE_NAME##Testbench {                                          \
   public:                                                                      \
-    ACT_NAME##Testbench() = default;                                           \
-    ~ACT_NAME##Testbench() = default;                                          \
-    void test_random_case(const std::string &case_ACT_NAME) {                  \
+    ELEMENTWISE_NAME##Testbench() = default;                                   \
+    ~ELEMENTWISE_NAME##Testbench() = default;                                  \
+    void test_random_case(const std::string &case_ELEMENTWISE_NAME) {          \
       _generator.generate_random_input(_input_ref);                            \
                                                                                \
       _convert_input(_input_ref, _input_dut);                                  \
                                                                                \
-      ACT_NAME##DUT::forward(_output_dut, _input_dut);                         \
-      ACT_NAME##Ref::forward(_output_ref, _input_ref);                         \
+      ELEMENTWISE_NAME##DUT::forward(_output_dut, _input_dut);                 \
+      ELEMENTWISE_NAME##Ref::forward(_output_ref, _input_ref);                 \
                                                                                \
       float output_dut_float[N];                                               \
       _convert_output(_output_dut, output_dut_float);                          \
                                                                                \
       auto result =                                                            \
           ResultComparator::compare(output_dut_float, _output_ref, N);         \
-      ResultComparator::print_result(result, case_ACT_NAME);                   \
+      ResultComparator::print_result(result, case_ELEMENTWISE_NAME);           \
     }                                                                          \
     void test_identity_case() {                                                \
       _generator.generate_random_input(_input_ref);                            \
                                                                                \
       _convert_input(_input_ref, _input_dut);                                  \
                                                                                \
-      ACT_NAME##DUT::forward(_output_dut, _input_dut);                         \
-      ACT_NAME##Ref::forward(_output_ref, _input_ref);                         \
+      ELEMENTWISE_NAME##DUT::forward(_output_dut, _input_dut);                 \
+      ELEMENTWISE_NAME##Ref::forward(_output_ref, _input_ref);                 \
                                                                                \
       float output_dut_float[N];                                               \
       _convert_output(_output_dut, output_dut_float);                          \
@@ -80,8 +77,8 @@
                                                                                \
       _convert_input(_input_ref, _input_dut);                                  \
                                                                                \
-      ACT_NAME##DUT::forward(_output_dut, _input_dut);                         \
-      ACT_NAME##Ref::forward(_output_ref, _input_ref);                         \
+      ELEMENTWISE_NAME##DUT::forward(_output_dut, _input_dut);                 \
+      ELEMENTWISE_NAME##Ref::forward(_output_ref, _input_ref);                 \
                                                                                \
       float output_dut_float[N];                                               \
       _convert_output(_output_dut, output_dut_float);                          \
@@ -93,7 +90,7 @@
                                                                                \
     void run_all_tests() {                                                     \
       std::cout << "\n########################################" << std::endl;  \
-      std::cout << "Testing" #ACT_NAME "Layer" << std::endl;                   \
+      std::cout << "Testing" #ELEMENTWISE_NAME "Layer" << std::endl;           \
       std::cout << "N: " << N << std::endl;                                    \
       std::cout << "OPT_STATUS: " << OPT_LEVEL << std::endl                    \
                 << "DType: " << typeid(DType).name() << std::endl;             \
@@ -107,9 +104,11 @@
     }                                                                          \
                                                                                \
   private:                                                                     \
-    using ACT_NAME##DUT = hls_nn::ACT_NAME<DType, N, Config, OPT_LEVEL>;       \
-    using ACT_NAME##Ref = hls_nn::ACT_NAME<float, N, void, OPT_NONE>;          \
-    ACT_NAME##TestCase<N> _generator;                                          \
+    using ELEMENTWISE_NAME##DUT =                                              \
+        hls_nn::ELEMENTWISE_NAME<DType, N, Config, OPT_LEVEL>;                 \
+    using ELEMENTWISE_NAME##Ref =                                              \
+        hls_nn::ELEMENTWISE_NAME<float, N, void, OPT_NONE>;                    \
+    ELEMENTWISE_NAME##TestCase<N> _generator;                                  \
                                                                                \
     DType _input_dut[N];                                                       \
     DType _output_dut[N];                                                      \

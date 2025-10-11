@@ -6,25 +6,14 @@
 #endif
 
 namespace hls_nn {
-template <typename DType, typename ImplType, int N, typename Config,
+
+template <typename DType, typename ImplType, int N, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
-class Elementwise {
-public:
-  using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
+class Elementwise;
 
-  Elementwise() = default;
-  ~Elementwise() = default;
-
-  static void forward(dtype output[n], const dtype input[n]);
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2[n]);
-
-private:
-};
-
+// ============================================================================
+// Non-optimized version (OPT_NONE)
+// ============================================================================
 template <typename DType, typename ImplType, int N>
 class Elementwise<DType, ImplType, N, void, OPT_NONE> {
 public:
@@ -36,7 +25,82 @@ public:
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void forward(dtype output[N], const dtype input[N]) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input);
+  }
+
+  static void forward(dtype output[N], const dtype input1[N],
+                      const dtype input2[N]) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input1, input2);
+  }
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input[b]);
+    }
+  }
+
+  static void forward(dtype output[][N], const dtype input1[][N],
+                      const dtype input2[][N], const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input1[b], input2[b]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input[b * N]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input1, const dtype *input2,
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input1[b * N], &input2[b * N]);
+    }
+  }
+
+private:
+  static void forward_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -46,20 +110,21 @@ public:
     }
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2[n]) {
+  static void forward_1d_impl(dtype *output, const dtype *input1,
+                              const dtype *input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-  ELEMEMTWISE_LOOP_2:
+  ELEMENTWISE_LOOP_2:
     for (int i = 0; i < n; i++) {
       output[i] = impl::kernel(input1[i], input2[i]);
     }
   }
-
-private:
 };
 
+// ============================================================================
+// Optimized version (OPT_ENABLED)
+// ============================================================================
 template <typename DType, typename ImplType, int N, typename Config>
 class Elementwise<DType, ImplType, N, Config, OPT_ENABLED> {
 public:
@@ -75,7 +140,83 @@ public:
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void forward(dtype output[N], const dtype input[N]) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input);
+  }
+
+  // Two inputs operation
+  static void forward(dtype output[N], const dtype input1[N],
+                      const dtype input2[N]) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input1, input2);
+  }
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input[b]);
+    }
+  }
+
+  static void forward(dtype output[][N], const dtype input1[][N],
+                      const dtype input2[][N], const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input1[b], input2[b]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input[b * N]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input1, const dtype *input2,
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input1[b * N], &input2[b * N]);
+    }
+  }
+
+private:
+  static void forward_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -91,15 +232,15 @@ public:
     }
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2[n]) {
+  static void forward_1d_impl(dtype *output, const dtype *input1,
+                              const dtype *input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = input1 cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = input2 cyclic factor = partition_factor
 #endif
-  ELEMEMTWISE_LOOP_2:
+  ELEMENTWISE_LOOP_2:
     for (int i = 0; i < n; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
@@ -108,40 +249,6 @@ public:
       output[i] = impl::kernel(input1[i], input2[i]);
     }
   }
-
-private:
-};
-
-template <typename DType, typename ImplType, const int N, typename Config,
-          OptLevel OPT_LEVEL = OPT_NONE>
-class ElementwiseBatched {
-public:
-  using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
-
-  ElementwiseBatched() = default;
-  ~ElementwiseBatched() = default;
-
-  static void forward(dtype output[][N], const dtype input[][N],
-                      int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS DATAFLOW
-#endif
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      Elementwise<DType, ImplType, N, Config, OPT_LEVEL>::forward(
-          *reinterpret_cast<dtype(*)[N]>(&output[b]),
-          *reinterpret_cast<const dtype(*)[N]>(&input[b]));
-    }
-  }
-
-private:
 };
 
 } // namespace hls_nn
