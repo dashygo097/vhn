@@ -9,31 +9,11 @@
 
 namespace hls_nn {
 template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT,
-          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class BatchNorm2d {
-public:
-  using dtype = DType;
-  static constexpr int channels = CHANNELS;
-  static constexpr int width = WIDTH;
-  static constexpr int height = HEIGHT;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
+          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
+class BatchNorm2d;
 
-  BatchNorm2d() = default;
-  ~BatchNorm2d() = default;
-
-  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
-                      const dtype running_mean[CHANNELS],
-                      const dtype running_var[CHANNELS], const int batch_size,
-                      const float epsilon = 1e-5);
-
-private:
-};
-
-template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT,
-          typename Config>
-class BatchNorm2d<DType, CHANNELS, WIDTH, HEIGHT, Config, OPT_NONE> {
+template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT>
+class BatchNorm2d<DType, CHANNELS, WIDTH, HEIGHT, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int channels = CHANNELS;

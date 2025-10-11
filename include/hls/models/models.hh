@@ -1,6 +1,5 @@
 #pragma once
 // Heads
-#include "./heads/classify.hh"
 
 // CNN
 

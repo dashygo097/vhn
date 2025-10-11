@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../hls_config.hh"
 #include "../nn/nn.hh"
 #include "../opt_level.hh"
@@ -93,6 +94,7 @@ private:
         forward_1d_impl<LayerIdx + 1>(output, act_out, rest...);
       }
     } else {
+    LAST_COPY_LOOP:
       for (int i = 0; i < out_dim; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1
@@ -196,6 +198,7 @@ private:
         forward_1d_impl<LayerIdx + 1>(output, act_out, rest...);
       }
     } else {
+    LAST_COPY_LOOP:
       for (int i = 0; i < out_dim; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = 1

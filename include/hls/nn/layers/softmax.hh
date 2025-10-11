@@ -12,32 +12,65 @@
 #endif
 
 namespace hls_nn {
-template <typename DType, int N, typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class Softmax {
-public:
-  using dtype = DType;
-  static constexpr int n = N;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
 
-  Softmax() = default;
-  ~Softmax() = default;
+template <typename DType, int N, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
+class Softmax;
 
-  static void forward(dtype output[N], const dtype input[N]);
-  static void forward(dtype output[][N], const dtype input[][N]);
-
-private:
-};
-
+// ============================================================================
+// Non-optimized version (OPT_NONE)
+// ============================================================================
 template <typename DType, int N> class Softmax<DType, N, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int n = N;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  static void forward(dtype output[N], dtype input[N]) {
+  Softmax() = default;
+  ~Softmax() = default;
+
+  static void forward(dtype output[N], const dtype input[N]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
+    forward_1d_impl(output, input);
+  }
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input[b]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input[b * N]);
+    }
+  }
+
+private:
+  static void forward_1d_impl(dtype *output, const dtype *input) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+
     dtype max_val = input[0];
   FIND_MAX:
     for (int i = 1; i < n; i++) {
@@ -56,31 +89,18 @@ public:
       sum += exp_val[i];
     }
 
+    // Normalize by sum
     dtype inv_sum = dtype(1.0) / sum;
   NORMALIZE:
     for (int i = 0; i < n; i++) {
       output[i] = exp_val[i] * inv_sum;
     }
   }
-
-  static void forward(dtype output[][N], const dtype input[][N],
-                      int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS DATAFLOW
-#endif
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward(*reinterpret_cast<dtype(*)[N]>(output[b]),
-              *reinterpret_cast<const dtype(*)[N]>(input[b]));
-    }
-  }
-
-private:
 };
 
+// ============================================================================
+// Optimized version (OPT_ENABLED)
+// ============================================================================
 template <typename DType, int N, typename Config>
 class Softmax<DType, N, Config, OPT_ENABLED> {
 public:
@@ -95,7 +115,44 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[N], dtype input[N]) {
+  static void forward(dtype output[N], const dtype input[N]) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input);
+  }
+
+  static void forward(dtype output[][N], const dtype input[][N],
+                      const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input[b]);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * N], &input[b * N]);
+    }
+  }
+
+private:
+  static void forward_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -133,21 +190,6 @@ public:
 #pragma HLS UNROLL factor = unroll_factor
 #endif
       output[i] = exp_val[i] * inv_sum;
-    }
-  }
-
-  static void forward(dtype output[][N], const dtype input[][N],
-                      int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS DATAFLOW
-#endif
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward(*reinterpret_cast<dtype(*)[N]>(output[b]),
-              *reinterpret_cast<const dtype(*)[N]>(input[b]));
     }
   }
 };
