@@ -20,6 +20,9 @@ template <typename DType, const int D_MODEL, NormType NORM_TYPE,
           typename Config = AddNormConfig<>, OptLevel OPT_LEVEL = OPT_NONE>
 class AddNorm;
 
+// ============================================================================
+// AddNorm specialization for OPT_NONE (using PreNorm, PostNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, NormType NORM_TYPE>
 class AddNorm<DType, D_MODEL, NORM_TYPE, void, OPT_NONE> {
 public:
@@ -60,6 +63,9 @@ public:
 private:
 };
 
+// ============================================================================
+// AddNorm specialization for OPT_ENABLED with Config (using PreNorm, PostNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, NormType NORM_TYPE,
           typename Config>
 class AddNorm<DType, D_MODEL, NORM_TYPE, Config, OPT_ENABLED> {

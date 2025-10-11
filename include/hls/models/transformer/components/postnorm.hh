@@ -26,6 +26,9 @@ template <typename DType, const int D_MODEL, typename Config = PostNormConfig<>,
           OptLevel OPT_LEVEL = OPT_NONE>
 class PostNorm;
 
+// ============================================================================
+// PostNorm specialization for OPT_NONE (using Add, LayerNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, typename Config>
 class PostNorm<DType, D_MODEL, Config, OPT_NONE> {
 public:
@@ -94,6 +97,9 @@ public:
   }
 };
 
+// ============================================================================
+// PostNorm specialization for OPT_ENABLED with Config (using Add, LayerNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, typename Config>
 class PostNorm<DType, D_MODEL, Config, OPT_ENABLED> {
 public:

@@ -26,6 +26,9 @@ template <typename DType, const int D_MODEL, typename Config = PreNormConfig<>,
           OptLevel OPT_LEVEL = OPT_NONE>
 class PreNorm;
 
+// ============================================================================
+// PreNorm specialization for OPT_NONE (using Add, LayerNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, typename Config>
 class PreNorm<DType, D_MODEL, Config, OPT_NONE> {
 public:
@@ -93,6 +96,9 @@ public:
   }
 };
 
+// ============================================================================
+// PreNorm specialization for OPT_ENABLED with Config (using Add, LayerNorm)
+// ============================================================================
 template <typename DType, const int D_MODEL, typename Config>
 class PreNorm<DType, D_MODEL, Config, OPT_ENABLED> {
 public:
