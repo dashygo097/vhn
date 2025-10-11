@@ -27,6 +27,8 @@ public:
   static constexpr int spatial_size = WIDTH * HEIGHT;
   static constexpr OptLevel opt_level = OPT_NONE;
 
+  using Tensor_2d_t = dtype[CHANNELS][spatial_size];
+  using Tensor_3d_t = dtype[CHANNELS][HEIGHT][WIDTH];
   using Weight_t = dtype[CHANNELS];
   using Bias_t = dtype[CHANNELS];
   using RunningMean_t = dtype[CHANNELS];
@@ -35,8 +37,7 @@ public:
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(dtype output[CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[CHANNELS][HEIGHT][WIDTH],
+  static void forward(Tensor_3d_t output, const Tensor_3d_t input,
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -48,8 +49,7 @@ public:
                     epsilon);
   }
 
-  static void forward(dtype output[CHANNELS][spatial_size],
-                      const dtype input[CHANNELS][spatial_size],
+  static void forward(Tensor_2d_t output, const Tensor_2d_t input,
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -102,8 +102,7 @@ public:
   }
 
 private:
-  static void forward_2d_impl(dtype output[CHANNELS][spatial_size],
-                              const dtype input[CHANNELS][spatial_size],
+  static void forward_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
                               const Weight_t weight, const Bias_t bias,
                               const RunningMean_t running_mean,
                               const RunningVar_t running_var,
@@ -127,8 +126,7 @@ private:
     }
   }
 
-  static void forward_3d_impl(dtype output[CHANNELS][HEIGHT][WIDTH],
-                              const dtype input[CHANNELS][HEIGHT][WIDTH],
+  static void forward_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
                               const Weight_t weight, const Bias_t bias,
                               const RunningMean_t running_mean,
                               const RunningVar_t running_var,
@@ -175,6 +173,8 @@ public:
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
 
+  using Tensor_2d_t = dtype[CHANNELS][spatial_size];
+  using Tensor_3d_t = dtype[CHANNELS][HEIGHT][WIDTH];
   using Weight_t = dtype[CHANNELS];
   using Bias_t = dtype[CHANNELS];
   using RunningMean_t = dtype[CHANNELS];
@@ -183,8 +183,7 @@ public:
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(dtype output[CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[CHANNELS][HEIGHT][WIDTH],
+  static void forward(Tensor_3d_t output, const Tensor_3d_t input,
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -196,8 +195,7 @@ public:
                     epsilon);
   }
 
-  static void forward(dtype output[CHANNELS][spatial_size],
-                      const dtype input[CHANNELS][spatial_size],
+  static void forward(Tensor_2d_t output, const Tensor_2d_t input,
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -250,8 +248,7 @@ public:
   }
 
 private:
-  static void forward_2d_impl(dtype output[CHANNELS][spatial_size],
-                              const dtype input[CHANNELS][spatial_size],
+  static void forward_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
                               const Weight_t weight, const Bias_t bias,
                               const RunningMean_t running_mean,
                               const RunningVar_t running_var,
@@ -291,8 +288,7 @@ private:
     }
   }
 
-  static void forward_3d_impl(dtype output[CHANNELS][HEIGHT][WIDTH],
-                              const dtype input[CHANNELS][HEIGHT][WIDTH],
+  static void forward_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
                               const Weight_t weight, const Bias_t bias,
                               const RunningMean_t running_mean,
                               const RunningVar_t running_var,
