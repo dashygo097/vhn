@@ -11,31 +11,14 @@
 #endif
 
 namespace hls_nn {
+
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
-          typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class Linear {
-public:
-  using dtype = DType;
-  static constexpr int in_features = IN_FEATURES;
-  static constexpr int out_features = OUT_FEATURES;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
+          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
+class Linear;
 
-  Linear() = default;
-  ~Linear() = default;
-
-  static void forward(dtype output[OUT_FEATURES],
-                      const dtype input[IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES]);
-
-  static void forward(dtype output[][OUT_FEATURES],
-                      const dtype input[][IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES]);
-
-private:
-};
-
+// ============================================================================
+// Non-optimized version (OPT_NONE)
+// ============================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
 class Linear<DType, IN_FEATURES, OUT_FEATURES, void, OPT_NONE> {
 public:
@@ -44,50 +27,74 @@ public:
   static constexpr int out_features = OUT_FEATURES;
   static constexpr OptLevel opt_level = OPT_NONE;
 
+  using Weight_t = dtype[OUT_FEATURES][IN_FEATURES];
+  using Bias_t = dtype[OUT_FEATURES];
+
   Linear() = default;
   ~Linear() = default;
 
   static void forward(dtype output[OUT_FEATURES],
-                      const dtype input[IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES]) {
+                      const dtype input[IN_FEATURES], const Weight_t weight,
+                      const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-
-  OUTER_LOOP:
-    for (int i = 0; i < out_features; i++) {
-      dtype acc = dtype(0.0f);
-    INNER_LOOP:
-      for (int j = 0; j < in_features; j++) {
-        acc += input[j] * weight[i][j];
-      }
-      output[i] = acc + bias[i];
-    }
+    forward_1d_impl(output, input, weight, bias);
   }
 
   static void forward(dtype output[][OUT_FEATURES],
-                      const dtype input[][IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES], const int batch_size) {
+                      const dtype input[][IN_FEATURES], const int batch_size,
+                      const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
+#pragma HLS INLINE off
 #pragma HLS DATAFLOW
 #endif
-
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward(*reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
-              *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
-              bias);
+      forward_1d_impl(output[b], input[b], weight, bias);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size,
+                      const Weight_t weight, const Bias_t bias) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * OUT_FEATURES], &input[b * IN_FEATURES],
+                      weight, bias);
     }
   }
 
 private:
+  static void forward_1d_impl(dtype *output, const dtype *input,
+                              const Weight_t weight, const Bias_t bias) {
+  OUTER_LOOP:
+    for (int i = 0; i < OUT_FEATURES; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS PIPELINE off
+#endif
+      dtype acc = dtype(0);
+    INNER_LOOP:
+      for (int j = 0; j < IN_FEATURES; j++) {
+        acc += input[j] * weight[i][j];
+      }
+      output[i] = acc + bias[i];
+    }
+  }
 };
 
+// ============================================================================
+// Optimized version (OPT_ENABLED)
+// ===========================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config>
 class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED> {
@@ -101,15 +108,57 @@ public:
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
 
+  using Weight_t = dtype[OUT_FEATURES][IN_FEATURES];
+  using Bias_t = dtype[OUT_FEATURES];
+
   Linear() = default;
   ~Linear() = default;
 
   static void forward(dtype output[OUT_FEATURES],
-                      const dtype input[IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES]) {
+                      const dtype input[IN_FEATURES], const Weight_t weight,
+                      const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+#endif
+    forward_1d_impl(output, input, weight, bias);
+  }
+
+  static void forward(dtype output[][OUT_FEATURES],
+                      const dtype input[][IN_FEATURES], const int batch_size,
+                      const Weight_t weight, const Bias_t bias) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(output[b], input[b], weight, bias);
+    }
+  }
+
+  static void forward(dtype *output, const dtype *input, const int batch_size,
+                      const Weight_t weight, const Bias_t bias) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_1d_impl(&output[b * OUT_FEATURES], &input[b * IN_FEATURES],
+                      weight, bias);
+    }
+  }
+
+private:
+  static void forward_1d_impl(dtype *output, const dtype *input,
+                              const Weight_t weight, const Bias_t bias) {
+#ifdef __VITIS_HLS__
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
     partition_factor dim = 2
@@ -117,46 +166,22 @@ public:
 #endif
 
   OUTER_LOOP:
-    for (int i = 0; i < out_features; i++) {
+    for (int i = 0; i < OUT_FEATURES; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-
-      dtype acc = dtype(0.0f);
+      dtype acc = dtype(0);
     INNER_LOOP:
-      for (int j = 0; j < in_features; j++) {
+      for (int j = 0; j < IN_FEATURES; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
         acc += input[j] * weight[i][j];
       }
-
       output[i] = acc + bias[i];
     }
   }
-
-  static void forward(dtype output[][OUT_FEATURES],
-                      const dtype input[][IN_FEATURES],
-                      const dtype weight[OUT_FEATURES][IN_FEATURES],
-                      const dtype bias[OUT_FEATURES], const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS DATAFLOW
-#endif
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward(*reinterpret_cast<dtype(*)[OUT_FEATURES]>(&output[b]),
-              *reinterpret_cast<const dtype(*)[IN_FEATURES]>(&input[b]), weight,
-              bias);
-    }
-  }
-
-private:
 };
-
 } // namespace hls_nn
 
 namespace hls_tb {

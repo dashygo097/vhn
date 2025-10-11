@@ -177,7 +177,7 @@ public:
           const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE],
           const dtype bias[OUT_CHANNELS]) {
 #ifdef __VITIS_HLS__
-#pramga HLS DATAFLOW
+#pragma HLS DATAFLOW
 #endif
 
   BATCH_LOOP:

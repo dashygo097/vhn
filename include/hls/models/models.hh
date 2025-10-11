@@ -1,4 +1,6 @@
 #pragma once
+// Heads
+#include "./heads/classify.hh"
 
 // CNN
 
@@ -11,3 +13,6 @@
 #include "./transformer/components/prenorm.hh"
 #include "./transformer/decoder.hh"
 #include "./transformer/encoder.hh"
+
+// Common
+#include "./mlp.hh"

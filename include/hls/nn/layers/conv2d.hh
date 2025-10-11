@@ -104,7 +104,7 @@ public:
       const dtype weight[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE][KERNEL_SIZE],
       dtype bias[OUT_CHANNELS]) {
 #ifdef __VITIS_HLS__
-#pramga HLS INLINE off
+#pragma HLS INLINE off
 #endif
 
   BATCH_LOOP:
