@@ -11,34 +11,7 @@
 namespace hls_nn {
 template <typename DType, const int D_MODEL, const int NUM_HEADS,
           typename Config, OptLevel OPT_LEVEL = OPT_NONE>
-class FusedMHA {
-public:
-  static_assert(D_MODEL % NUM_HEADS == 0,
-                "D_MODEL must be divisible by NUM_HEADS");
-  using dtype = DType;
-  static constexpr int d_model = D_MODEL;
-  static constexpr int num_heads = NUM_HEADS;
-  static constexpr int head_dim = D_MODEL / NUM_HEADS;
-  static constexpr OptLevel opt_level = OPT_LEVEL;
-
-  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
-  using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL][D_MODEL];
-  using bo_t = dtype[D_MODEL];
-
-  FusedMHA() = default;
-  ~FusedMHA() = default;
-
-  static void qkv(dtype Q[][D_MODEL], dtype K[][D_MODEL], dtype V[][D_MODEL],
-                  const dtype input[][D_MODEL], const int actual_len,
-                  const Wqkv_t Wqkv, const bqkv_t bqkv);
-  static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
-                      const dtype mask[], const int actual_len,
-                      const Wqkv_t Wqkv, const bqkv_t bqkv, const Wo_t Wo,
-                      const bo_t bo);
-
-private:
-};
+class FusedMHA;
 
 template <typename DType, const int D_MODEL, const int NUM_HEADS>
 class FusedMHA<DType, D_MODEL, NUM_HEADS, void, OPT_NONE> {
