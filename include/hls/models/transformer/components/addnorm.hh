@@ -10,30 +10,15 @@
 enum NormType { POSTNORM, PRENORM };
 
 namespace hls_nn {
-template <typename NORM_CONFIG = void> struct AddNormConfig {
+template <typename ADD_CONFIG = void, typename NORM_CONFIG = void>
+struct AddNormConfig {
+  using add = ADD_CONFIG;
   using norm = NORM_CONFIG;
 };
 
 template <typename DType, const int D_MODEL, NormType NORM_TYPE,
           typename Config = AddNormConfig<>, OptLevel OPT_LEVEL = OPT_NONE>
-class AddNorm {
-public:
-  using dtype = DType;
-  static constexpr int d_model = D_MODEL;
-  static constexpr NormType norm_type = NORM_TYPE;
-
-  using gamma_t = dtype[D_MODEL];
-  using beta_t = dtype[D_MODEL];
-
-  AddNorm() = default;
-  ~AddNorm() = default;
-
-  static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
-                      const dtype residual[][D_MODEL], const int actual_len,
-                      const gamma_t gamma, const beta_t beta);
-
-private:
-};
+class AddNorm;
 
 template <typename DType, const int D_MODEL, NormType NORM_TYPE>
 class AddNorm<DType, D_MODEL, NORM_TYPE, void, OPT_NONE> {
@@ -49,15 +34,27 @@ public:
   AddNorm() = default;
   ~AddNorm() = default;
 
-  using norm =
+  using addnorm =
       typename std::conditional<NORM_TYPE == POSTNORM,
                                 PostNorm<DType, D_MODEL, void, OPT_NONE>,
                                 PreNorm<DType, D_MODEL, void, OPT_NONE>>::type;
 
+  static void forward(dtype output[D_MODEL], const dtype input[D_MODEL],
+                      const dtype residual[D_MODEL], const gamma_t gamma,
+                      const beta_t beta) {
+    addnorm::forward(output, input, residual, gamma, beta);
+  }
+
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const dtype residual[][D_MODEL], const int actual_len,
                       const gamma_t gamma, const beta_t beta) {
-    norm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+  }
+
+  static void forward(dtype *output, const dtype *input, const dtype *residual,
+                      const int actual_len, const gamma_t gamma,
+                      const beta_t beta) {
+    addnorm::forward(output, input, residual, actual_len, gamma, beta);
   }
 
 private:
@@ -75,23 +72,40 @@ public:
   using gamma_t = dtype[D_MODEL];
   using beta_t = dtype[D_MODEL];
 
+  using add_config = typename Config::add;
   using norm_config = typename Config::norm;
 
+  static constexpr OptLevel add_opt =
+      std::is_same<add_config, void>::value ? OPT_NONE : OPT_ENABLED;
   static constexpr OptLevel norm_opt =
       std::is_same<norm_config, void>::value ? OPT_NONE : OPT_ENABLED;
 
   AddNorm() = default;
   ~AddNorm() = default;
 
-  using norm = typename std::conditional<
+  using addnorm = typename std::conditional<
       NORM_TYPE == POSTNORM,
-      PostNorm<DType, D_MODEL, typename Config::norm, norm_opt>,
-      PreNorm<DType, D_MODEL, typename Config::norm, norm_opt>>::type;
+      PostNorm<DType, D_MODEL, PostNormConfig<add_config, norm_config>,
+               norm_opt>,
+      PreNorm<DType, D_MODEL, PreNormConfig<add_config, norm_config>,
+              norm_opt>>::type;
+
+  static void forward(dtype output[D_MODEL], const dtype input[D_MODEL],
+                      const dtype residual[D_MODEL], const gamma_t gamma,
+                      const beta_t beta) {
+    addnorm::forward(output, input, residual, gamma, beta);
+  }
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const dtype residual[][D_MODEL], const int actual_len,
                       const gamma_t gamma, const beta_t beta) {
-    norm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+  }
+
+  static void forward(dtype *output, const dtype *input, const dtype *residual,
+                      const int actual_len, const gamma_t gamma,
+                      const beta_t beta) {
+    addnorm::forward(output, input, residual, actual_len, gamma, beta);
   }
 
 private:

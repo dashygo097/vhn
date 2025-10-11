@@ -15,7 +15,7 @@ struct FFNConfig {
   using fc2 = FC2_Config;
 };
 
-template <typename FFNConfig> struct FFNMLPConfig {
+template <typename FFNConfig> struct FFN_MLPConfig {
   using act = typename FFNConfig::act;
   template <int LayerIdx>
   using layer =
@@ -99,7 +99,7 @@ public:
   FFN() = default;
   ~FFN() = default;
 
-  using MLPConfig = FFNMLPConfig<Config>;
+  using MLPConfig = FFN_MLPConfig<Config>;
 
   using mlp =
       MLP<DType, D_MODEL, ActLayer, MLPConfig, OPT_ENABLED, D_FF, D_MODEL>;
