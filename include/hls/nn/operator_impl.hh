@@ -1,6 +1,7 @@
 #pragma once
 
 #include "./elementwise.hh"
+#include <limits>
 
 #ifdef __VITIS_HLS__
 #endif

@@ -79,7 +79,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype global_acc = impl::init_value();
+    dtype global_acc = input[0][0];
     int total_count = 0;
 
   BATCH_LOOP:
@@ -99,7 +99,7 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype acc = impl::init_value();
+    dtype acc = input[0];
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
@@ -127,6 +127,7 @@ public:
   static constexpr int unroll_factor = Config::_unroll_factor;
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr bool use_reduce_tree = Config::_use_reduce_tree;
 
   Reduce() = default;
   ~Reduce() = default;
@@ -185,7 +186,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype global_acc = impl::init_value();
+    dtype global_acc = input[0][0];
     int total_count = 0;
 
   BATCH_LOOP:
@@ -214,7 +215,7 @@ private:
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #endif
-    dtype acc = impl::init_value();
+    dtype acc = input[0];
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
