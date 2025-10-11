@@ -4,14 +4,19 @@
 #include <cmath>
 
 #ifdef __VITIS_HLS__
+#include <hls_math.h>
 #include <hls_stream.h>
 #endif
 
 namespace hls_nn {
+
 template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT,
           typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
 class BatchNorm2d;
 
+// ============================================================================
+// Non-optimized version (OPT_NONE)
+// ============================================================================
 template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT>
 class BatchNorm2d<DType, CHANNELS, WIDTH, HEIGHT, void, OPT_NONE> {
 public:
@@ -19,80 +24,244 @@ public:
   static constexpr int channels = CHANNELS;
   static constexpr int width = WIDTH;
   static constexpr int height = HEIGHT;
+  static constexpr int spatial_size = WIDTH * HEIGHT;
   static constexpr OptLevel opt_level = OPT_NONE;
+
+  using Weight_t = dtype[CHANNELS];
+  using Bias_t = dtype[CHANNELS];
+  using RunningMean_t = dtype[CHANNELS];
+  using RunningVar_t = dtype[CHANNELS];
 
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
-                      const dtype running_mean[CHANNELS],
-                      const dtype running_var[CHANNELS], const int batch_size,
+  static void forward(dtype output[CHANNELS][HEIGHT][WIDTH],
+                      const dtype input[CHANNELS][HEIGHT][WIDTH],
+                      const Weight_t weight, const Bias_t bias,
+                      const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
+    forward_3d_impl(output, input, weight, bias, running_mean, running_var,
+                    epsilon);
+  }
 
+  static void forward(dtype output[CHANNELS][spatial_size],
+                      const dtype input[CHANNELS][spatial_size],
+                      const Weight_t weight, const Bias_t bias,
+                      const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_2d_impl(output, input, weight, bias, running_mean, running_var,
+                    epsilon);
+  }
+
+  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
+                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
+                      const int batch_size, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
+      forward_3d_impl(output[b], input[b], weight, bias, running_mean,
+                      running_var, epsilon);
+    }
+  }
 
-    CHANNEL_LOOP:
-      for (int c = 0; c < channels; c++) {
+  static void forward(dtype output[][CHANNELS][spatial_size],
+                      const dtype input[][CHANNELS][spatial_size],
+                      const int batch_size, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
-        dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
-#else
-        dtype inv_std = dtype(1.0) / sqrt(running_var[c] + dtype(epsilon));
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
 #endif
-
-      HEIGHT_LOOP:
-        for (int h = 0; h < height; h++) {
-        WIDTH_LOOP:
-          for (int w = 0; w < width; w++) {
-            output[b][c][h][w] =
-                weight[c] * (input[b][c][h][w] - running_mean[c]) * inv_std +
-                bias[c];
-          }
-        }
-      }
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_2d_impl(output[b], input[b], weight, bias, running_mean,
+                      running_var, epsilon);
     }
   }
 
 private:
+  static void forward_2d_impl(dtype output[CHANNELS][spatial_size],
+                              const dtype input[CHANNELS][spatial_size],
+                              const Weight_t weight, const Bias_t bias,
+                              const RunningMean_t running_mean,
+                              const RunningVar_t running_var,
+                              const float epsilon) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+  CHANNEL_LOOP:
+    for (int c = 0; c < channels; c++) {
+#ifdef __VITIS_HLS__
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+#else
+      dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+#endif
+
+    SPATIAL_LOOP:
+      for (int s = 0; s < spatial_size; s++) {
+        output[c][s] =
+            weight[c] * (input[c][s] - running_mean[c]) * inv_std + bias[c];
+      }
+    }
+  }
+
+  static void forward_3d_impl(dtype output[CHANNELS][HEIGHT][WIDTH],
+                              const dtype input[CHANNELS][HEIGHT][WIDTH],
+                              const Weight_t weight, const Bias_t bias,
+                              const RunningMean_t running_mean,
+                              const RunningVar_t running_var,
+                              const float epsilon) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+  CHANNEL_LOOP:
+    for (int c = 0; c < channels; c++) {
+#ifdef __VITIS_HLS__
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+#else
+      dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+#endif
+
+    HEIGHT_LOOP:
+      for (int h = 0; h < height; h++) {
+      WIDTH_LOOP:
+        for (int w = 0; w < width; w++) {
+          output[c][h][w] =
+              weight[c] * (input[c][h][w] - running_mean[c]) * inv_std +
+              bias[c];
+        }
+      }
+    }
+  }
 };
 
-template <typename DType, const int CHANNELS, const int H, const int W,
+// ============================================================================
+// Optimized version (OPT_ENABLED)
+// ============================================================================
+template <typename DType, const int CHANNELS, const int WIDTH, const int HEIGHT,
           typename Config>
-class BatchNorm2d<DType, CHANNELS, H, W, Config, OPT_ENABLED> {
+class BatchNorm2d<DType, CHANNELS, WIDTH, HEIGHT, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int channels = CHANNELS;
-  static constexpr int height = H;
-  static constexpr int width = W;
+  static constexpr int width = WIDTH;
+  static constexpr int height = HEIGHT;
+  static constexpr int spatial_size = WIDTH * HEIGHT;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int unroll_factor = Config::_unroll_factor;
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
 
+  using Weight_t = dtype[CHANNELS];
+  using Bias_t = dtype[CHANNELS];
+  using RunningMean_t = dtype[CHANNELS];
+  using RunningVar_t = dtype[CHANNELS];
+
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(dtype output[][CHANNELS][H][W],
-                      const dtype input[][CHANNELS][H][W],
-                      const dtype weight[CHANNELS], const dtype bias[CHANNELS],
-                      const dtype running_mean[CHANNELS],
-                      const dtype running_var[CHANNELS], const int batch_size,
+  static void forward(dtype output[CHANNELS][HEIGHT][WIDTH],
+                      const dtype input[CHANNELS][HEIGHT][WIDTH],
+                      const Weight_t weight, const Bias_t bias,
+                      const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+#endif
+    forward_3d_impl(output, input, weight, bias, running_mean, running_var,
+                    epsilon);
+  }
+
+  static void forward(dtype output[CHANNELS][spatial_size],
+                      const dtype input[CHANNELS][spatial_size],
+                      const Weight_t weight, const Bias_t bias,
+                      const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
+    forward_2d_impl(output, input, weight, bias, running_mean, running_var,
+                    epsilon);
+  }
+
+  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
+                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
+                      const int batch_size, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_3d_impl(output[b], input[b], weight, bias, running_mean,
+                      running_var, epsilon);
+    }
+  }
+
+  static void forward(dtype output[][CHANNELS][spatial_size],
+                      const dtype input[][CHANNELS][spatial_size],
+                      const int batch_size, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      forward_2d_impl(output[b], input[b], weight, bias, running_mean,
+                      running_var, epsilon);
+    }
+  }
+
+private:
+  static void forward_2d_impl(dtype output[CHANNELS][spatial_size],
+                              const dtype input[CHANNELS][spatial_size],
+                              const Weight_t weight, const Bias_t bias,
+                              const RunningMean_t running_mean,
+                              const RunningVar_t running_var,
+                              const float epsilon) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
-    partition_factor dim = 2
+    partition_factor dim = 1
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor =                  \
-    partition_factor dim = 2
+    partition_factor dim = 1
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = running_mean cyclic factor =            \
@@ -100,41 +269,72 @@ public:
 #pragma HLS ARRAY_PARTITION variable = running_var cyclic factor =             \
     partition_factor
 #endif
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-
-    CHANNEL_LOOP:
-      for (int c = 0; c < channels; c++) {
+  CHANNEL_LOOP:
+    for (int c = 0; c < channels; c++) {
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
 #ifdef __VITIS_HLS__
-        dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
 #else
-        dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+      dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
 #endif
 
-      HEIGHT_LOOP:
-        for (int h = 0; h < height; h++) {
-        WIDTH_LOOP:
-          for (int w = 0; w < width; w++) {
+    SPATIAL_LOOP:
+      for (int s = 0; s < spatial_size; s++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-            output[b][c][h][w] =
-                weight[c] * (input[b][c][h][w] - running_mean[c]) * inv_std +
-                bias[c];
-          }
-        }
+        output[c][s] =
+            weight[c] * (input[c][s] - running_mean[c]) * inv_std + bias[c];
       }
     }
   }
 
-private:
+  static void forward_3d_impl(dtype output[CHANNELS][HEIGHT][WIDTH],
+                              const dtype input[CHANNELS][HEIGHT][WIDTH],
+                              const Weight_t weight, const Bias_t bias,
+                              const RunningMean_t running_mean,
+                              const RunningVar_t running_var,
+                              const float epsilon) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
+    partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = output cyclic factor =                  \
+    partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
+#pragma HLS ARRAY_PARTITION variable = running_mean cyclic factor =            \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = running_var cyclic factor =             \
+    partition_factor
+#endif
+  CHANNEL_LOOP:
+    for (int c = 0; c < channels; c++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#endif
+#ifdef __VITIS_HLS__
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+#else
+      dtype inv_std = dtype(1.0) / std::sqrt(running_var[c] + dtype(epsilon));
+#endif
+
+    HEIGHT_LOOP:
+      for (int h = 0; h < height; h++) {
+      WIDTH_LOOP:
+        for (int w = 0; w < width; w++) {
+#ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+          output[c][h][w] =
+              weight[c] * (input[c][h][w] - running_mean[c]) * inv_std +
+              bias[c];
+        }
+      }
+    }
+  }
 };
 
 } // namespace hls_nn
