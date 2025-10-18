@@ -60,6 +60,7 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
   - [x] `Linear`
   - [x] `Softmax`
   - [x] `Conv1d`, `Conv2d`
+  - [ ] `Conv1d`, `Conv2d(Winograd)`
   - [ ] ...
 - [ ] `Norms`
   - [x] `BatchNorm1d`,`BatchNorm2d`
