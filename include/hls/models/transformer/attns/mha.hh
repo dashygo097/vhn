@@ -197,10 +197,20 @@ public:
   static constexpr OptLevel wo_opt =
       std::is_same<wo_config, void>::value ? OPT_NONE : OPT_ENABLED;
 
-  static constexpr int split_unroll =
+  static constexpr int split_unroll_factor =
       split_opt == OPT_ENABLED ? Config::_unroll_factor : -1;
   static constexpr int split_pipeline_ii =
       split_opt == OPT_ENABLED ? Config::_pipeline_ii : -1;
+  static constexpr int attn_unroll_factor =
+      attn_opt == OPT_ENABLED ? Config::_unroll_factor : -1;
+  static constexpr int attn_partition_factor =
+      attn_opt == OPT_ENABLED ? Config::_partition_factor : -1;
+  static constexpr int attn_pipeline_ii =
+      attn_opt == OPT_ENABLED ? Config::_pipeline_ii : -1;
+  static constexpr int concat_unroll_factor =
+      concat_opt == OPT_ENABLED ? Config::_unroll_factor : -1;
+  static constexpr int concat_pipeline_ii =
+      concat_opt == OPT_ENABLED ? Config::_pipeline_ii : -1;
 
   MulHeadAttn() = default;
   ~MulHeadAttn() = default;
@@ -276,18 +286,18 @@ private:
 
     for (int h = 0; h < NUM_HEADS; h++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS UNROLL factor = attn_unroll_factor
 #endif
       dtype scores[MAX_SEQ_LEN][MAX_SEQ_LEN];
 #ifdef __VITIS_HLS__
 #pragma HLS ARRAY_PARTITION variable = scores cyclic factor =                  \
-    partition_factor dim = 2
+    attn_partition_factor dim = 2
 #endif
 
       for (int i = 0; i < actual_len; i++) {
         for (int j = 0; j < actual_len; j++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1
+#pragma HLS PIPELINE II = attn_pipeline_ii
 #endif
           dtype dot = dtype(0.0);
           for (int d = 0; d < head_dim; d++) {
@@ -307,7 +317,7 @@ private:
       for (int i = 0; i < actual_len; i++) {
         for (int d = 0; d < head_dim; d++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1
+#pragma HLS PIPELINE II = attn_pipeline_ii
 #endif
           dtype sum = dtype(0.0);
           for (int j = 0; j < actual_len; j++) {
@@ -327,11 +337,11 @@ private:
 #endif
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1
+#pragma HLS PIPELINE II = concat_pipeline_ii
 #endif
       for (int h = 0; h < NUM_HEADS; h++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS UNROLL factor = concat_unroll_factor
 #endif
         for (int d = 0; d < head_dim; d++) {
           concat[i][h * head_dim + d] = attn_output[i][h][d];

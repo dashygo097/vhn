@@ -89,14 +89,14 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype acc = impl::init_value();
+    dtype acc = dtype(0);
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
       acc = impl::kernel(acc, input[i]);
     }
 
-    return impl::finalize(acc, N);
+    return impl::finalize(acc);
   }
 };
 
@@ -114,7 +114,7 @@ public:
   static constexpr int unroll_factor = Config::_unroll_factor;
   static constexpr int partition_factor = Config::_partition_factor;
   static constexpr int pipeline_ii = Config::_pipeline_ii;
-  static constexpr bool use_tree = Config::_use_tree;
+  static constexpr bool use_tree = Config::_use_reduce_tree;
 
   static constexpr int num_stages = log2_ceil(N);
   static constexpr int padded_n = next_power_of_2(N);
@@ -175,7 +175,7 @@ private:
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #endif
-    dtype acc = impl::init_value();
+    dtype acc = dtype(0);
 
   REDUCE_LOOP:
     for (int i = 0; i < N; i++) {
@@ -186,35 +186,36 @@ private:
       acc = impl::kernel(acc, input[i]);
     }
 
-    return impl::finalize(acc, N);
+    return impl::finalize(acc);
   }
 
   static dtype forward_tree(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE
-#pragma HLS ARRAY_PARTITION variable = input complete
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #endif
 
     // Pad input if not power of 2
     dtype padded_input[padded_n];
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = padded_input complete
+#pragma HLS ARRAY_PARTITION variable = padded_input cyclic factor =            \
+    partition_factor
 #endif
 
   PAD_LOOP:
     for (int i = 0; i < padded_n; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL
+#pragma HLS UNROLL factor = unroll_factor
 #endif
       if (i < N) {
         padded_input[i] = input[i];
       } else {
-        padded_input[i] = impl::init_value();
+        padded_input[i] = dtype(0);
       }
     }
 
     dtype result = forward_tree_recursive<padded_n>(padded_input);
-    return impl::finalize(result, N);
+    return impl::finalize(result);
   }
 
   template <int SIZE>
@@ -227,14 +228,16 @@ private:
       dtype right_result[HALF];
 
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = left_result complete
-#pragma HLS ARRAY_PARTITION variable = right_result complete
+#pragma HLS ARRAY_PARTITION variable = left_result cyclic factor =             \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = right_result cyclic factor =            \
+    partition_factor
 #endif
 
     TREE_LEVEL:
       for (int i = 0; i < HALF; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL
+#pragma HLS UNROLL factor = unroll_factor
 #endif
         left_result[i] = input[2 * i];
         right_result[i] = input[2 * i + 1];
@@ -242,13 +245,13 @@ private:
 
       dtype combined[HALF];
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = combined complete
+#pragma HLS ARRAY_PARTITION variable = combined cyclic factor = partition_factor
 #endif
 
     COMBINE:
       for (int i = 0; i < HALF; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL
+#pragma HLS UNROLL factor = unroll_factor
 #endif
         combined[i] = impl::kernel(left_result[i], right_result[i]);
       }
