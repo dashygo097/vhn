@@ -82,6 +82,19 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias,
+                           running_mean, running_var, epsilon);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias,
@@ -101,6 +114,30 @@ private:
       output[c] = weight[c] * (input[c] - running_mean[c]) * inv_std + bias[c];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias,
+                                     const RunningMean_t running_mean,
+                                     const RunningVar_t running_var,
+                                     const float epsilon) {
+    dtype input_buffer[CHANNELS];
+
+  READ_INPUT:
+    for (int c = 0; c < CHANNELS; c++) {
+      input_buffer[c] = input_stream.read();
+    }
+
+  CHANNEL_STREAM_LOOP:
+    for (int c = 0; c < CHANNELS; c++) {
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+      dtype output_val =
+          weight[c] * (input_buffer[c] - running_mean[c]) * inv_std + bias[c];
+      output_stream.write(output_val);
+    }
+  }
+#endif
 };
 
 // ============================================================================
@@ -175,6 +212,19 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Weight_t weight,
+                      const Bias_t bias, const RunningMean_t running_mean,
+                      const RunningVar_t running_var,
+                      const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias,
+                           running_mean, running_var, epsilon);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias,
@@ -206,6 +256,35 @@ private:
       output[c] = weight[c] * (input[c] - running_mean[c]) * inv_std + bias[c];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias,
+                                     const RunningMean_t running_mean,
+                                     const RunningVar_t running_var,
+                                     const float epsilon) {
+    dtype input_buffer[CHANNELS];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+
+  READ_INPUT:
+    for (int c = 0; c < CHANNELS; c++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer[c] = input_stream.read();
+    }
+
+  CHANNEL_STREAM_LOOP:
+    for (int c = 0; c < CHANNELS; c++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+      dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
+      dtype output_val =
+          weight[c] * (input_buffer[c] - running_mean[c]) * inv_std + bias[c];
+      output_stream.write(output_val);
+    }
+  }
+#endif
 };
 
 } // namespace hls_nn

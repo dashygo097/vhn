@@ -148,6 +148,21 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream);
+  }
+
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream1,
+                      hls::stream<dtype> &input_stream2) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream1, input_stream2);
+  }
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype input) {
 #ifdef __VITIS_HLS__
@@ -190,6 +205,45 @@ private:
       output[i] = impl::kernel(input1[i], input2);
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream) {
+    dtype input_buffer[N];
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+      input_buffer[i] = input_stream.read();
+    }
+  ELEMENTWISE_STREAM_LOOP:
+    for (int i = 0; i < N; i++) {
+      output_stream.write(impl::kernel(input_buffer[i]));
+    }
+  }
+
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream1,
+                                     hls::stream<dtype> &input_stream2) {
+    dtype input_buffer1[N];
+    dtype input_buffer2[N];
+
+  READ_INPUT1:
+    for (int i = 0; i < N; i++) {
+      input_buffer1[i] = input_stream1.read();
+    }
+
+  READ_INPUT2:
+    for (int i = 0; i < N; i++) {
+      input_buffer2[i] = input_stream2.read();
+    }
+
+  ELEMENTWISE_STREAM_LOOP_2:
+    for (int i = 0; i < N; i++) {
+      output_stream.write(impl::kernel(input_buffer1[i], input_buffer2[i]));
+    }
+  }
+
+#endif
 };
 
 // ============================================================================
@@ -333,6 +387,21 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream);
+  }
+
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream1,
+                      hls::stream<dtype> &input_stream2) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream1, input_stream2);
+  }
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype input) {
 #ifdef __VITIS_HLS__
@@ -400,6 +469,58 @@ private:
       output[i] = impl::kernel(input1[i], input2[i]);
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream) {
+    dtype input_buffer[N];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer[i] = input_stream.read();
+    }
+
+  ELEMENTWISE_STREAM_LOOP:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+      output_stream.write(impl::kernel(input_buffer[i]));
+    }
+  }
+
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream1,
+                                     hls::stream<dtype> &input_stream2) {
+    dtype input_buffer1[N];
+    dtype input_buffer2[N];
+#pragma HLS ARRAY_PARTITION variable = input_buffer1 cyclic factor =           \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = input_buffer2 cyclic factor =           \
+    partition_factor
+
+  READ_INPUT1:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer1[i] = input_stream1.read();
+    }
+
+  READ_INPUT2:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer2[i] = input_stream2.read();
+    }
+
+  ELEMENTWISE_STREAM_LOOP_2:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+      output_stream.write(impl::kernel(input_buffer1[i], input_buffer2[i]));
+    }
+  }
+#endif
 };
 
 } // namespace hls_nn

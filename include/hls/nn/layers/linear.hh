@@ -74,13 +74,23 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Weight_t weight,
+                      const Bias_t bias) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
   OUTER_LOOP:
     for (int i = 0; i < OUT_FEATURES; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE off
+#pragma HLS INLINE off
 #endif
       dtype acc = dtype(0);
     INNER_LOOP:
@@ -90,6 +100,29 @@ private:
       output[i] = acc + bias[i];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias) {
+    dtype input_buffer[IN_FEATURES];
+
+  READ_INPUT:
+    for (int j = 0; j < IN_FEATURES; j++) {
+      input_buffer[j] = input_stream.read();
+    }
+
+  OUTER_LOOP:
+    for (int i = 0; i < OUT_FEATURES; i++) {
+      dtype acc = dtype(0);
+    INNER_LOOP:
+      for (int j = 0; j < IN_FEATURES; j++) {
+        acc += input_buffer[j] * weight[i][j];
+      }
+      output_stream.write(acc + bias[i]);
+    }
+  }
+#endif
 };
 
 // ============================================================================
@@ -155,6 +188,15 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Weight_t weight,
+                      const Bias_t bias) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+  }
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
@@ -181,6 +223,43 @@ private:
       output[i] = acc + bias[i];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias) {
+    dtype input_buffer[IN_FEATURES];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+    partition_factor dim = 2
+#pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
+
+  READ_INPUT:
+    for (int j = 0; j < IN_FEATURES; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+      input_buffer[j] = input_stream.read();
+    }
+
+  OUTER_LOOP:
+    for (int i = 0; i < OUT_FEATURES; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
+#endif
+      dtype acc = dtype(0);
+    INNER_LOOP:
+      for (int j = 0; j < IN_FEATURES; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#endif
+        acc += input_buffer[j] * weight[i][j];
+      }
+      output_stream.write(acc + bias[i]);
+    }
+  }
+#endif
 };
 } // namespace hls_nn
 

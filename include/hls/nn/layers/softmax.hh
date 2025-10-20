@@ -65,6 +65,15 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
@@ -96,6 +105,40 @@ private:
       output[i] = exp_val[i] * inv_sum;
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::strema<dtype> &input_stream) {
+    dtype input_buffer[N];
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+      input_buffer[i] = input_stream.read();
+    }
+
+    dtype max_val = input_buffer[0];
+  FIND_MAX:
+    for (int i = 1; i < N; i++) {
+      max_val = (input_buffer[i] > max_val) ? input_buffer[i] : max_val;
+    }
+
+    dtype sum = dtype(0.0f);
+    dtype exp_val[N];
+#pragma HLS ARRAY_PARTITION variable = exp_val complete
+
+  CALC_EXP:
+    for (int i = 0; i < N; i++) {
+      exp_val[i] = hls::exp(input_buffer[i] - max_val);
+      sum += exp_val[i];
+    }
+
+    dtype inv_sum = dtype(1.0) / sum;
+  NORMALIZE_WRITE:
+    for (int i = 0; i < N; i++) {
+      output_stream.write(exp_val[i] * inv_sum);
+    }
+  }
+#endif
 };
 
 // ============================================================================
@@ -151,6 +194,15 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
@@ -192,6 +244,46 @@ private:
       output[i] = exp_val[i] * inv_sum;
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream) {
+    dtype input_buffer[N];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer[i] = input_stream.read();
+    }
+
+    dtype max_val = input_buffer[0];
+  FIND_MAX:
+    for (int i = 1; i < N; i++) {
+#pragma HLS UNROLL factor = unroll_factor
+      max_val = (input_buffer[i] > max_val) ? input_buffer[i] : max_val;
+    }
+
+    dtype sum = dtype(0.0f);
+    dtype exp_val[N];
+#pragma HLS ARRAY_PARTITION variable = exp_val cyclic factor = partition_factor
+
+  CALC_EXP:
+    for (int i = 0; i < N; i++) {
+#pragma HLS UNROLL factor = unroll_factor
+      exp_val[i] = hls::exp(input_buffer[i] - max_val);
+      sum += exp_val[i];
+    }
+
+    dtype inv_sum = dtype(1.0) / sum;
+  NORMALIZE_WRITE:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      output_stream.write(exp_val[i] * inv_sum);
+    }
+  }
+#endif
 };
 
 } // namespace hls_nn

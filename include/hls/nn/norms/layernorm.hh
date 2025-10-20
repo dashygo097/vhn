@@ -73,6 +73,16 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Gamma_t gamma,
+                      const Beta_t beta, const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Gamma_t gamma, const Beta_t beta,
@@ -101,12 +111,49 @@ private:
     dtype inv_std = dtype(1.0) / std::sqrt(variance + dtype(epsilon));
 #endif
 
-    // Normalize and apply affine transformation
   NORMALIZE:
     for (int j = 0; j < hidden_dim; j++) {
       output[j] = gamma[j] * (input[j] - mean) * inv_std + beta[j];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Gamma_t gamma, const Beta_t beta,
+                                     const float epsilon) {
+    dtype input_buffer[HIDDEN_DIM];
+
+  READ_INPUT:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+      input_buffer[j] = input_stream.read();
+    }
+
+    dtype mean = dtype(0);
+  CALC_MEAN_STREAM:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+      mean += input_buffer[j];
+    }
+    mean /= dtype(HIDDEN_DIM);
+
+    dtype variance = dtype(0);
+  CALC_VARIANCE_STREAM:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+      dtype diff = input_buffer[j] - mean;
+      variance += diff * diff;
+    }
+    variance /= dtype(HIDDEN_DIM);
+
+    dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
+
+  NORMALIZE_WRITE:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+      dtype output_val =
+          gamma[j] * (input_buffer[j] - mean) * inv_std + beta[j];
+      output_stream.write(output_val);
+    }
+  }
+#endif
 };
 
 // ============================================================================
@@ -172,6 +219,16 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Gamma_t gamma,
+                      const Beta_t beta, const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Gamma_t gamma, const Beta_t beta,
@@ -222,6 +279,51 @@ private:
       output[i] = gamma[i] * (input[i] - mean) * inv_std + beta[i];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Gamma_t gamma, const Beta_t beta,
+                                     const float epsilon) {
+    dtype input_buffer[HIDDEN_DIM];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+
+  READ_INPUT:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer[j] = input_stream.read();
+    }
+
+    dtype mean = dtype(0);
+  CALC_MEAN_STREAM:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+#pragma HLS UNROLL factor = unroll_factor
+      mean += input_buffer[j];
+    }
+    mean /= dtype(HIDDEN_DIM);
+
+    dtype variance = dtype(0);
+  CALC_VARIANCE_STREAM:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+#pragma HLS UNROLL factor = unroll_factor
+      dtype diff = input_buffer[j] - mean;
+      variance += diff * diff;
+    }
+    variance /= dtype(HIDDEN_DIM);
+
+    dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
+
+  NORMALIZE_WRITE:
+    for (int j = 0; j < HIDDEN_DIM; j++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+      dtype output_val =
+          gamma[j] * (input_buffer[j] - mean) * inv_std + beta[j];
+      output_stream.write(output_val);
+    }
+  }
+#endif
 };
 
 } // namespace hls_nn

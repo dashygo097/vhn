@@ -90,7 +90,7 @@ private:
   OUT_CHANNEL_LOOP:
     for (int oc = 0; oc < OUT_CHANNELS; oc++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE off
+#pragma HLS INLINE off
 #endif
     OUT_POS_LOOP:
       for (int pos = 0; pos < out_length; pos++) {
@@ -191,15 +191,18 @@ private:
                               const dtype input[IN_CHANNELS][N],
                               const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = input block factor =                    \
+#pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
     partition_factor dim = 1
-#pragma HLS ARRAY_PARTITION variable = weight block factor =                   \
-    partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+    partition_factor dim = 3
 #pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
 #endif
 
   OUT_CHANNEL_LOOP:
     for (int oc = 0; oc < OUT_CHANNELS; oc++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = unroll_factor
+#endif
     OUT_POS_LOOP:
       for (int pos = 0; pos < out_length; pos++) {
 #ifdef __VITIS_HLS__

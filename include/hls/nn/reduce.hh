@@ -84,6 +84,19 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static dtype forward(hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    return forward_stream_impl(input_stream);
+  }
+
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    output_stream.write(forward_stream_impl(input_stream));
+  }
+#endif
+
 private:
   static dtype forward_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
@@ -98,6 +111,27 @@ private:
 
     return impl::finalize(acc);
   }
+
+#ifdef __VITIS_HLS__
+  static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
+    dtype input_buffer[N];
+#pragma HLS ARRAY_PARTITION variable = input_buffer complete
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = 1
+      input_buffer[i] = input_stream.read();
+    }
+
+    dtype acc = dtype(0);
+  REDUCE_STREAM_LOOP:
+    for (int i = 0; i < N; i++) {
+      acc = impl::kernel(acc, input_buffer[i]);
+    }
+
+    return impl::finalize(acc);
+  }
+#endif
 };
 
 // ============================================================================
@@ -169,6 +203,20 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static dtype forward(hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    return forward_stream_impl(input_stream);
+  }
+
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    output_stream.write(forward_stream_impl(input_stream));
+  }
+
+#endif
+
 private:
   static dtype forward_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
@@ -237,6 +285,7 @@ private:
     TREE_LEVEL:
       for (int i = 0; i < HALF; i++) {
 #ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
 #endif
         left_result[i] = input[2 * i];
@@ -259,6 +308,33 @@ private:
       return forward_tree_recursive<HALF>(combined);
     }
   }
+
+#ifdef __VITIS_HLS__
+  static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
+    dtype input_buffer[N];
+#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
+    partition_factor
+
+  READ_INPUT:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+      input_buffer[i] = input_stream.read();
+    }
+
+    if constexpr (use_tree) {
+      return forward_tree_internal(input_buffer);
+    } else {
+      dtype acc = dtype(0);
+    REDUCE_STREAM_LOOP:
+      for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+        acc = impl::kernel(acc, input_buffer[i]);
+      }
+      return impl::finalize(acc);
+    }
+  }
+#endif
 };
 
 } // namespace hls_nn
