@@ -7,6 +7,7 @@ namespace hls_nn {
 // Define Common Operators
 ELEMENTWISE_DEF(Add)
 ELEMENTWISE_DEF(Sub)
+ELEMENTWISE_DEF(Mul)
 
 REDUCE_DEF(Max)
 REDUCE_DEF(Min)

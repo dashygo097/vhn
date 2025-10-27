@@ -1,7 +1,6 @@
 #pragma once
 
 #include "./elementwise.hh"
-#include <limits>
 
 #ifdef __VITIS_HLS__
 #endif
@@ -21,6 +20,13 @@ public:
   static constexpr int n = N;
 
   static dtype kernel(const dtype x, const dtype y) { return x - y; }
+};
+
+template <typename DType, int N> class MulImpl {
+public:
+  using dtype = DType;
+  static constexpr int n = N;
+  static dtype kernel(const dtype x, const dtype y) { return x * y; }
 };
 
 template <typename DType, int N> class MaxImpl {

@@ -108,7 +108,7 @@ private:
 
 #ifdef __VITIS_HLS__
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::strema<dtype> &input_stream) {
+                                     hls::stream<dtype> &input_stream) {
     dtype input_buffer[N];
 
   READ_INPUT:
