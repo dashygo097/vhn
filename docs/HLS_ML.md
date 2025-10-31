@@ -49,7 +49,7 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
 ##### Concurrency
 
 - [x] `Hardware Paralleled`
-- [ ] `Stream`
+- [x] `Stream`
 
 ##### Basic Kernels
 
@@ -60,6 +60,7 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
   - [x] `Linear`
   - [x] `Softmax`
   - [x] `Conv1d`, `Conv2d`
+  - [ ] `Embedding`
   - [ ] `Conv1d`, `Conv2d(Winograd)`
   - [ ] ...
 - [ ] `Norms`
@@ -74,7 +75,7 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
 - [x] `Common`
   - [x] `AddNorm`
   - [x] `FFN`
-- [ ] `MulHeadSelfAttn`
+- [x] `MulHeadSelfAttn`
   - [x] `Fused Kernel`
-  - [ ] `Impled Kernel`
+  - [x] `Impled Kernel`
 - [ ] `MulHeadCrossAttn`

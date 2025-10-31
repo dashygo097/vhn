@@ -264,32 +264,27 @@ private:
 } // namespace hls_nn
 
 namespace hls_tb {
-template <const int IN_FEATURES, const int OUT_FEATURES> class LinearTestCase {
+template <const int IN_FEATURES, const int OUT_FEATURES>
+class LinearTestCase : public BaseTestCase {
 public:
-  LinearTestCase(unsigned seed = 42) : _seed(seed), _dist(-1.0f, 1.0f) {}
+  LinearTestCase(unsigned seed = 42) : BaseTestCase(seed) {}
 
   void generate_random_input(float input[IN_FEATURES]) {
-    for (int i = 0; i < IN_FEATURES; i++) {
-      input[i] = _dist(_seed);
-    }
+    generate_random_array(input, IN_FEATURES);
   }
 
   void generate_random_weight(float weight[OUT_FEATURES][IN_FEATURES]) {
     for (int i = 0; i < OUT_FEATURES; i++) {
-      for (int j = 0; j < IN_FEATURES; j++) {
-        weight[i][j] = _dist(_seed) * 0.1f;
-      }
+      generate_random_array(weight[i], IN_FEATURES, 0.1f);
     }
   }
 
   void generate_random_bias(float bias[OUT_FEATURES]) {
-    for (int i = 0; i < OUT_FEATURES; i++) {
-      bias[i] = _dist(_seed) * 0.01f;
-    }
+    generate_random_array(bias, OUT_FEATURES, 0.01f);
   }
 
   void generate_ones_input(float input[IN_FEATURES]) {
-    std::fill_n(input, IN_FEATURES, 1.0f);
+    generate_ones_array(input, IN_FEATURES);
   }
 
   void generate_identity_weight(float weight[OUT_FEATURES][IN_FEATURES]) {
@@ -302,23 +297,17 @@ public:
   }
 
   void generate_zero_bias(float bias[OUT_FEATURES]) {
-    std::fill_n(bias, OUT_FEATURES, 0.0f);
+    generate_zeros_array(bias, OUT_FEATURES);
   }
-
-private:
-  std::mt19937 _seed;
-  std::uniform_real_distribution<float> _dist;
 };
 
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
-class LinearTestbench {
+class LinearTestbench : public BaseTestbench<DType, Config, OPT_LEVEL> {
 public:
-  LinearTestbench() = default;
-  ~LinearTestbench() = default;
+  LinearTestbench() : BaseTestbench<DType, Config, OPT_LEVEL>("Linear") {}
 
-  void test_random_case(const std::string &case_name) {
-    // Generate random test data in float32
+  void test_random_case(const std::string &case_name) override {
     _generator.generate_random_input(_input_ref);
     _generator.generate_random_weight(_weight_ref);
     _generator.generate_random_bias(_bias_ref);
@@ -338,7 +327,7 @@ public:
     ResultComparator::print_result(result, case_name);
   }
 
-  void test_identity_case() {
+  void test_identity_case() override {
     _generator.generate_random_input(_input_ref);
     _generator.generate_identity_weight(_weight_ref);
     _generator.generate_zero_bias(_bias_ref);
@@ -358,7 +347,7 @@ public:
     ResultComparator::print_result(result, "Identity Matrix Test");
   }
 
-  void test_ones_case() {
+  void test_ones_case() override {
     _generator.generate_ones_input(_input_ref);
     _generator.generate_random_weight(_weight_ref);
     _generator.generate_random_bias(_bias_ref);
@@ -378,20 +367,15 @@ public:
     ResultComparator::print_result(result, "All Ones Input Test");
   }
 
-  void run_all_tests() {
+protected:
+  void print_test_header() override {
     std::cout << "\n########################################" << std::endl;
     std::cout << "Testing Linear Layer" << std::endl;
     std::cout << "IN_FEATURES: " << IN_FEATURES << std::endl;
     std::cout << "OUT_FEATURES: " << OUT_FEATURES << std::endl;
-    std::cout << "OPT_STATUS: " << OPT_LEVEL << std::endl
-              << "DType: " << typeid(DType).name() << std::endl;
+    std::cout << "OPT_STATUS: " << OPT_LEVEL << std::endl;
+    std::cout << "DType: " << typeid(DType).name() << std::endl;
     std::cout << "########################################" << std::endl;
-
-    test_random_case("Random Test Case 1");
-    test_random_case("Random Test Case 2");
-    test_random_case("Random Test Case 3");
-    test_identity_case();
-    test_ones_case();
   }
 
 private:
@@ -412,30 +396,22 @@ private:
   float _output_ref[OUT_FEATURES];
 
   void _convert_input(const float src[IN_FEATURES], DType dst[IN_FEATURES]) {
-    for (int i = 0; i < IN_FEATURES; i++) {
-      dst[i] = static_cast<DType>(src[i]);
-    }
+    this->convert_array(src, dst, IN_FEATURES);
   }
 
   void _convert_weight(const float src[OUT_FEATURES][IN_FEATURES],
                        DType dst[OUT_FEATURES][IN_FEATURES]) {
     for (int i = 0; i < OUT_FEATURES; i++) {
-      for (int j = 0; j < IN_FEATURES; j++) {
-        dst[i][j] = static_cast<DType>(src[i][j]);
-      }
+      this->convert_array(src[i], dst[i], IN_FEATURES);
     }
   }
 
   void _convert_bias(const float src[OUT_FEATURES], DType dst[OUT_FEATURES]) {
-    for (int i = 0; i < OUT_FEATURES; i++) {
-      dst[i] = static_cast<DType>(src[i]);
-    }
+    this->convert_array(src, dst, OUT_FEATURES);
   }
 
   void _convert_output(const DType src[OUT_FEATURES], float dst[OUT_FEATURES]) {
-    for (int i = 0; i < OUT_FEATURES; i++) {
-      dst[i] = static_cast<float>(src[i]);
-    }
+    this->convert_array(src, dst, OUT_FEATURES);
   }
 };
 } // namespace hls_tb

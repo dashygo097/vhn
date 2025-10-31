@@ -13,6 +13,7 @@
 #include "./decls.hh"
 #include "./layers/conv1d.hh"
 #include "./layers/conv2d.hh"
+#include "./layers/embedding.hh"
 #include "./layers/linear.hh"
 #include "./layers/softmax.hh"
 
