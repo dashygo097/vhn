@@ -25,7 +25,7 @@ template <typename FFNConfig> struct FFN_MLPConfig {
 
 template <typename DType, const int D_MODEL, const int D_FF,
           template <typename, int, typename, OptLevel> class ActLayer,
-          typename Config = FFNConfig<>, OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
 class FFN;
 
 // ============================================================================
@@ -33,7 +33,7 @@ class FFN;
 // ============================================================================
 template <typename DType, const int D_MODEL, const int D_FF,
           template <typename, int, typename, OptLevel> class ActLayer>
-class FFN<DType, D_MODEL, D_FF, ActLayer, FFNConfig<>, OPT_NONE> {
+class FFN<DType, D_MODEL, D_FF, ActLayer, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int d_model = D_MODEL;

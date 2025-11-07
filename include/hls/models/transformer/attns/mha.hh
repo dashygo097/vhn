@@ -41,9 +41,9 @@ public:
   static constexpr int max_seq_len = MAX_SEQ_LEN;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL * D_MODEL];
+  using Wo_t = dtype[D_MODEL][D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   MulHeadAttn() = default;
@@ -172,9 +172,9 @@ public:
   static constexpr int max_seq_len = MAX_SEQ_LEN;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL * D_MODEL];
+  using Wo_t = dtype[D_MODEL][D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   using wqkv_config = typename Config::wqkv;

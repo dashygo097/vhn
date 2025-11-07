@@ -45,9 +45,9 @@ public:
   static constexpr OptLevel opt_level = OPT_NONE;
   static constexpr NormType norm_type = NORM_TYPE;
 
-  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL * D_MODEL];
+  using Wo_t = dtype[D_MODEL][D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   using W1_t = dtype[D_FF][D_MODEL];
@@ -107,9 +107,9 @@ public:
   static constexpr OptLevel opt_level = OPT_ENABLED;
   static constexpr NormType norm_type = NORM_TYPE;
 
-  using Wqkv_t = dtype[3 * D_MODEL * D_MODEL];
+  using Wqkv_t = dtype[3 * D_MODEL][D_MODEL];
   using bqkv_t = dtype[3 * D_MODEL];
-  using Wo_t = dtype[D_MODEL * D_MODEL];
+  using Wo_t = dtype[D_MODEL][D_MODEL];
   using bo_t = dtype[D_MODEL];
 
   using W1_t = dtype[D_FF][D_MODEL];
