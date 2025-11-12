@@ -9,22 +9,22 @@
 #endif
 
 namespace hls_nn {
-template <typename DType, const int INPUT_DIM,
+template <typename DType, const int OUTPUT_DIM,
           template <typename, int, typename, OptLevel> class ActLayer,
           typename Config = void, OptLevel OPT_LEVEL = OPT_NONE,
           int... HiddenDims>
 class MLP;
 
-template <typename DType, const int INPUT_DIM,
+template <typename DType, const int OUTPUT_DIM,
           template <typename, int, typename, OptLevel> class ActLayer,
           int... HiddenDims>
-class MLP<DType, INPUT_DIM, ActLayer, void, OPT_NONE, HiddenDims...> {
+class MLP<DType, OUTPUT_DIM, ActLayer, void, OPT_NONE, HiddenDims...> {
 public:
   using dtype = DType;
-  static constexpr int input_dim = INPUT_DIM;
-  static constexpr int n_layers = sizeof...(HiddenDims);
-  static constexpr int hidden_dims[n_layers] = {HiddenDims...};
-  static constexpr int output_dim = hidden_dims[n_layers - 1];
+  static constexpr int output_dim = OUTPUT_DIM;
+  static constexpr int n_layers = sizeof...(HiddenDims) - 1;
+  static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
+  static constexpr int input_dim = hidden_dims[0];
   static constexpr OptLevel opt_level = OPT_NONE;
 
   MLP() = default;
@@ -34,14 +34,14 @@ public:
   template <int OUT_DIM> using Bias_t = dtype[OUT_DIM];
 
   template <typename... WeightBiasPairs>
-  static void forward(dtype output[output_dim], const dtype input[INPUT_DIM],
+  static void forward(dtype output[output_dim], const dtype input[input_dim],
                       WeightBiasPairs... params) {
     forward_1d_impl<0>(output, input, params...);
   }
 
   template <typename... WeightBiasPairs>
   static void forward(dtype output[][output_dim],
-                      const dtype input[][INPUT_DIM], const int batch_size,
+                      const dtype input[][input_dim], const int batch_size,
                       WeightBiasPairs... params) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
@@ -75,9 +75,8 @@ private:
   template <int LayerIdx, typename W_t, typename B_t, typename... Rest>
   static void forward_1d_impl(dtype *output, const dtype *input, const W_t &w,
                               const B_t &b, Rest... rest) {
-    static constexpr int in_dim =
-        (LayerIdx == 0) ? INPUT_DIM : hidden_dims[LayerIdx - 1];
-    static constexpr int out_dim = hidden_dims[LayerIdx];
+    static constexpr int in_dim = hidden_dims[LayerIdx];
+    static constexpr int out_dim = hidden_dims[LayerIdx + 1];
     static constexpr bool is_last = (LayerIdx == n_layers - 1);
 
     dtype layer_out[out_dim];
@@ -105,16 +104,16 @@ private:
   }
 };
 
-template <typename DType, const int INPUT_DIM,
+template <typename DType, const int OUTPUT_DIM,
           template <typename, int, typename, OptLevel> class ActLayer,
           typename Config, int... HiddenDims>
-class MLP<DType, INPUT_DIM, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
+class MLP<DType, OUTPUT_DIM, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
 public:
   using dtype = DType;
-  static constexpr int input_dim = INPUT_DIM;
-  static constexpr int n_layers = sizeof...(HiddenDims);
-  static constexpr int hidden_dims[n_layers] = {HiddenDims...};
-  static constexpr int output_dim = hidden_dims[n_layers - 1];
+  static constexpr int output_dim = OUTPUT_DIM;
+  static constexpr int n_layers = sizeof...(HiddenDims) - 1;
+  static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
+  static constexpr int input_dim = hidden_dims[0];
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   MLP() = default;
@@ -134,14 +133,14 @@ public:
   }
 
   template <typename... WeightBiasPairs>
-  static void forward(dtype output[output_dim], const dtype input[INPUT_DIM],
+  static void forward(dtype output[output_dim], const dtype input[input_dim],
                       WeightBiasPairs... params) {
     forward_1d_impl<0>(output, input, params...);
   }
 
   template <typename... WeightBiasPairs>
   static void forward(dtype output[][output_dim],
-                      const dtype input[][INPUT_DIM], const int batch_size,
+                      const dtype input[][input_dim], const int batch_size,
                       WeightBiasPairs... params) {
 #ifdef __VITIS_HLS__
 #pragma HLS DATAFLOW
@@ -175,9 +174,8 @@ private:
   template <int LayerIdx, typename W_t, typename B_t, typename... Rest>
   static void forward_1d_impl(dtype *output, const dtype *input, const W_t &w,
                               const B_t &b, Rest... rest) {
-    static constexpr int in_dim =
-        (LayerIdx == 0) ? INPUT_DIM : hidden_dims[LayerIdx - 1];
-    static constexpr int out_dim = hidden_dims[LayerIdx];
+    static constexpr int in_dim = hidden_dims[LayerIdx];
+    static constexpr int out_dim = hidden_dims[LayerIdx + 1];
     static constexpr bool is_last = (LayerIdx == n_layers - 1);
     static constexpr OptLevel layer_opt = get_layer_opt<LayerIdx>();
 
