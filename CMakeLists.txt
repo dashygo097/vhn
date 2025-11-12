@@ -25,21 +25,16 @@ endif()
 # 3rdparty 
 include_directories(3rdparty)
 add_subdirectory(3rdparty/googletest EXCLUDE_FROM_ALL)
+add_subdirectory(3rdparty/nlohmann EXCLUDE_FROM_ALL)
 
 # hls lib
-file(GLOB_RECURSE HLS_SOURCES src/*.c src/*.cc src/*.cpp)
 file(GLOB_RECURSE HLS_HEADERS include/*.h include/*.hh include/*.hpp)
 
-add_library(hls ${HLS_SOURCES} ${HLS_HEADERS})
+add_library(hls INTERFACE)
 
-target_include_directories(hls PUBLIC 
+target_include_directories(hls INTERFACE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-)
-
-set_target_properties(hls PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
 # Colored printing
@@ -82,13 +77,10 @@ endfunction()
 
 # Stastics
 print_info("――――――――――――――――――LIB SCOPE――――――――――――――――――" "0")
-make_paths_relative(REL_SOURCES HLS_SOURCES)
 make_paths_relative(REL_HEADERS HLS_HEADERS)
 
 make_preview_string(REL_HEADERS 3)
 print_info("[TRACE] Header files: ${PREVIOUS_SCOPE_VAR}" "94")
-make_preview_string(REL_SOURCES 3)
-print_info("[TRACE] Source files: ${PREVIOUS_SCOPE_VAR}" "96")
 
 # Testing
 include(GoogleTest)
