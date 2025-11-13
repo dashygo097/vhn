@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(hls LANGUAGES C CXX)
+project(vhn LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -27,12 +27,12 @@ include_directories(3rdparty)
 add_subdirectory(3rdparty/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(3rdparty/nlohmann EXCLUDE_FROM_ALL)
 
-# hls lib
-file(GLOB_RECURSE HLS_HEADERS include/*.h include/*.hh include/*.hpp)
+# hls_nn lib
+file(GLOB_RECURSE VHN_HEADERS include/*.h include/*.hh include/*.hpp)
 
-add_library(hls INTERFACE)
+add_library(vhn INTERFACE)
 
-target_include_directories(hls INTERFACE 
+target_include_directories(vhn INTERFACE 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
@@ -77,7 +77,7 @@ endfunction()
 
 # Stastics
 print_info("――――――――――――――――――LIB SCOPE――――――――――――――――――" "0")
-make_paths_relative(REL_HEADERS HLS_HEADERS)
+make_paths_relative(REL_HEADERS VHN_HEADERS)
 
 make_preview_string(REL_HEADERS 3)
 print_info("[TRACE] Header files: ${PREVIOUS_SCOPE_VAR}" "94")
