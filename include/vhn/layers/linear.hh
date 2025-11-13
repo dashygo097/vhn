@@ -13,7 +13,7 @@
 
 namespace vhn {
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
-          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
+          typename Config, OptLevel OPT_LEVEL>
 class Linear;
 
 // ============================================================================
@@ -35,19 +35,15 @@ public:
   ~Linear() = default;
 
 #ifndef __VITIS_HLS__
-  std::string type() const override { return "linear"; }
-  json params() const override {
+  static json hparams() {
     json j;
-    j["in_features"] = IN_FEATURES;
-    j["out_features"] = OUT_FEATURES;
-    return j;
-  }
-  json to_json() const override {
-    json j;
-    j["type"] = type();
-    j["params"] = params();
-    j["opt_level"] = "OPT_NONE";
-    j["hls_config"] = json::object();
+
+    std::string type = "Linear";
+    json hparams;
+
+    hparams["in_features"] = IN_FEATURES;
+    hparams["out_features"] = OUT_FEATURES;
+
     return j;
   }
 #endif
@@ -149,8 +145,7 @@ private:
 // ===========================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config>
-class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED>
-    : public BaseLayer {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -168,9 +163,8 @@ public:
   ~Linear() = default;
 
 #ifndef __VITIS_HLS__
-  // Json Serialization
-  std::string type() const override { return "linear"; }
-  json to_json() const override {
+  static std::string type() { return "linear"; }
+  json to_json() {
     json j;
     j["type"] = type();
     j["opt_level"] = "OPT_ENABLED";

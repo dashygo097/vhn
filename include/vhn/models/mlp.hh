@@ -8,22 +8,21 @@
 #endif
 
 namespace vhn {
-template <typename DType, const int OUTPUT_DIM,
-          template <typename, int, typename, OptLevel> class ActLayer,
-          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE,
-          int... HiddenDims>
+template <
+    typename DType, template <typename, int, typename, OptLevel> class ActLayer,
+    typename Config = void, OptLevel OPT_LEVEL = OPT_NONE, int... HiddenDims>
 class MLP;
 
-template <typename DType, const int OUTPUT_DIM,
+template <typename DType,
           template <typename, int, typename, OptLevel> class ActLayer,
           int... HiddenDims>
-class MLP<DType, OUTPUT_DIM, ActLayer, void, OPT_NONE, HiddenDims...> {
+class MLP<DType, ActLayer, void, OPT_NONE, HiddenDims...> {
 public:
   using dtype = DType;
-  static constexpr int output_dim = OUTPUT_DIM;
   static constexpr int n_layers = sizeof...(HiddenDims);
   static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
   static constexpr int input_dim = hidden_dims[0];
+  static constexpr int output_dim = hidden_dims[n_layers - 1];
   static constexpr OptLevel opt_level = OPT_NONE;
 
   template <int IN_DIM, int OUT_DIM> using Weight_t = dtype[OUT_DIM][IN_DIM];
@@ -100,16 +99,16 @@ private:
   }
 };
 
-template <typename DType, const int OUTPUT_DIM,
+template <typename DType,
           template <typename, int, typename, OptLevel> class ActLayer,
           typename Config, int... HiddenDims>
-class MLP<DType, OUTPUT_DIM, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
+class MLP<DType, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
 public:
   using dtype = DType;
-  static constexpr int output_dim = OUTPUT_DIM;
   static constexpr int n_layers = sizeof...(HiddenDims);
   static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
   static constexpr int input_dim = hidden_dims[0];
+  static constexpr int output_dim = hidden_dims[n_layers - 1];
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   MLP() = default;

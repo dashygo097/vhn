@@ -142,7 +142,6 @@ private:
       std::string params_str = "";
       if (layer.contains("params")) {
         params_str = layer["params"].dump();
-        // Escape quotes
         size_t pos = 0;
         while ((pos = params_str.find("\"", pos)) != std::string::npos) {
           params_str.replace(pos, 1, "\\\"");

@@ -48,7 +48,7 @@ public:
   FFN() = default;
   ~FFN() = default;
 
-  using mlp = MLP<DType, D_MODEL, ActLayer, void, OPT_NONE, D_MODEL, D_FF>;
+  using mlp = MLP<DType, ActLayer, void, OPT_NONE, D_MODEL, D_FF, D_MODEL>;
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const int actual_len, const W1_t w1, const b1_t b1,
@@ -102,7 +102,7 @@ public:
   using MLPConfig = FFN_MLPConfig<Config>;
 
   using mlp =
-      MLP<DType, D_MODEL, ActLayer, MLPConfig, OPT_ENABLED, D_MODEL, D_FF>;
+      MLP<DType, ActLayer, MLPConfig, OPT_ENABLED, D_MODEL, D_FF, D_MODEL>;
 
   static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
                       const int actual_len, const W1_t w1, const b1_t b1,
