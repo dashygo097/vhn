@@ -2,21 +2,25 @@
 
 #include <fstream>
 #include <iostream>
+
+#ifndef __VITIS_HLS__
 #include <nlohmann/json.hpp>
+#endif
 
 namespace hls_nn {
 
+#ifndef __VITIS_HLS__
 using json = nlohmann::json;
+#endif
 
-template <typename DType> class BaseModule {
+class BaseLayer {
 public:
-  using dtype = DType;
+  BaseLayer() = default;
+  virtual ~BaseLayer() = default;
 
-  virtual ~BaseModule() = default;
-
+#ifndef __VITIS_HLS__
+  virtual std::string type() const = 0;
   virtual json to_json() const = 0;
-  virtual std::string module_name() const = 0;
-  virtual std::string module_type() const = 0;
 
   bool dump(const std::string &filepath, int indent = 2) const {
     try {
@@ -39,18 +43,59 @@ public:
       return false;
     }
   }
+#endif
+};
+
+class BaseModule : public BaseLayer {
+protected:
+#ifndef __VITIS_HLS__
+  std::vector<std::shared_ptr<BaseLayer>> submodules;
+#endif
+
+public:
+  BaseModule() = default;
+  virtual ~BaseModule() = default;
+
+#ifndef __VITIS_HLS__
+  void add_submodule(std::shared_ptr<BaseModule> submodule) {
+    submodules.push_back(submodule);
+  }
+
+  int get_num_submodules() const { return submodules.size(); }
+
+  std::shared_ptr<BaseLayer> get_submodule(int idx) const {
+    if (idx >= 0 && idx < (int)submodules.size()) {
+      return submodules[idx];
+    }
+    return nullptr;
+  }
+
+  json export_submodules_to_json() const {
+    json submodules_json = json::array();
+    for (const auto &submodule : submodules) {
+      submodules_json.push_back(submodule->to_json());
+    }
+    return submodules_json;
+  }
+#endif
 };
 
 struct HLSConfig {
-  int unroll_factor = 1;
-  int partition_factor = 1;
-  int pipeline_ii = 1;
+  int unroll_factor;
+  int partition_factor;
+  int pipeline_ii;
 
+#ifndef __VITIS_HLS__
   json to_json() const {
     json j;
-    j["unroll_factor"] = unroll_factor;
-    j["partition_factor"] = partition_factor;
-    j["pipeline_ii"] = pipeline_ii;
+
+    if (unroll_factor != 0)
+      j["unroll_factor"] = unroll_factor;
+    if (partition_factor != 0)
+      j["partition_factor"] = partition_factor;
+    if (pipeline_ii != 0)
+      j["pipeline_ii"] = pipeline_ii;
+
     return j;
   }
 
@@ -64,5 +109,7 @@ struct HLSConfig {
       config.pipeline_ii = j["pipeline_ii"];
     return config;
   }
+#endif
 };
+
 } // namespace hls_nn

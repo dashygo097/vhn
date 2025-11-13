@@ -21,16 +21,16 @@ class MLP<DType, OUTPUT_DIM, ActLayer, void, OPT_NONE, HiddenDims...> {
 public:
   using dtype = DType;
   static constexpr int output_dim = OUTPUT_DIM;
-  static constexpr int n_layers = sizeof...(HiddenDims) - 1;
+  static constexpr int n_layers = sizeof...(HiddenDims);
   static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
   static constexpr int input_dim = hidden_dims[0];
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  MLP() = default;
-  ~MLP() = default;
-
   template <int IN_DIM, int OUT_DIM> using Weight_t = dtype[OUT_DIM][IN_DIM];
   template <int OUT_DIM> using Bias_t = dtype[OUT_DIM];
+
+  MLP() = default;
+  ~MLP() = default;
 
   template <typename... WeightBiasPairs>
   static void forward(dtype output[output_dim], const dtype input[input_dim],
@@ -76,7 +76,7 @@ private:
                               const B_t &b, Rest... rest) {
     static constexpr int in_dim = hidden_dims[LayerIdx];
     static constexpr int out_dim = hidden_dims[LayerIdx + 1];
-    static constexpr bool is_last = (LayerIdx == n_layers - 1);
+    static constexpr bool is_last = (LayerIdx == n_layers - 2);
 
     dtype layer_out[out_dim];
 
@@ -94,9 +94,6 @@ private:
     } else {
     LAST_COPY_LOOP:
       for (int i = 0; i < out_dim; i++) {
-#ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = 1
-#endif
         output[i] = layer_out[i];
       }
     }
@@ -110,7 +107,7 @@ class MLP<DType, OUTPUT_DIM, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
 public:
   using dtype = DType;
   static constexpr int output_dim = OUTPUT_DIM;
-  static constexpr int n_layers = sizeof...(HiddenDims) - 1;
+  static constexpr int n_layers = sizeof...(HiddenDims);
   static constexpr int hidden_dims[sizeof...(HiddenDims)] = {HiddenDims...};
   static constexpr int input_dim = hidden_dims[0];
   static constexpr OptLevel opt_level = OPT_ENABLED;
@@ -175,7 +172,7 @@ private:
                               const B_t &b, Rest... rest) {
     static constexpr int in_dim = hidden_dims[LayerIdx];
     static constexpr int out_dim = hidden_dims[LayerIdx + 1];
-    static constexpr bool is_last = (LayerIdx == n_layers - 1);
+    static constexpr bool is_last = (LayerIdx == n_layers - 2);
     static constexpr OptLevel layer_opt = get_layer_opt<LayerIdx>();
 
     dtype layer_out[out_dim];

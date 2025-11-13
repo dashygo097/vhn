@@ -21,7 +21,7 @@ class Linear;
 // ============================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
 class Linear<DType, IN_FEATURES, OUT_FEATURES, void, OPT_NONE>
-    : public BaseModule<DType> {
+    : public BaseLayer {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -34,17 +34,17 @@ public:
   Linear() = default;
   ~Linear() = default;
 
+#ifndef __VITIS_HLS__
   // Json Serialization
-  std::string module_name() const override { return "Linear"; }
-  std::string module_type() const override { return "Linear_OPT_NONE"; }
+  std::string type() const override { return "linear"; }
   json to_json() const override {
     json j;
-    j["module_type"] = module_type();
-    j["module_name"] = module_name();
+    j["type"] = type();
     j["opt_level"] = "OPT_NONE";
     j["hls_config"] = json::object();
     return j;
   }
+#endif
 
   static void forward(dtype output[OUT_FEATURES],
                       const dtype input[IN_FEATURES], const Weight_t weight,
@@ -144,7 +144,7 @@ private:
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config>
 class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED>
-    : public BaseModule<DType> {
+    : public BaseLayer {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -161,14 +161,12 @@ public:
   Linear() = default;
   ~Linear() = default;
 
-  std::string module_name() const override { return "Linear"; }
-  std::string module_type() const override { return "Linear_OPT_ENABLED"; }
+#ifndef __VITIS_HLS__
+  // Json Serialization
+  std::string type() const override { return "linear"; }
   json to_json() const override {
     json j;
-    j["module_type"] = module_type();
-    j["module_name"] = module_name();
-    j["in_features"] = in_features;
-    j["out_features"] = out_features;
+    j["type"] = type();
     j["opt_level"] = "OPT_ENABLED";
 
     json hls_config;
@@ -179,6 +177,7 @@ public:
 
     return j;
   }
+#endif
 
   static void forward(dtype output[OUT_FEATURES],
                       const dtype input[IN_FEATURES], const Weight_t weight,

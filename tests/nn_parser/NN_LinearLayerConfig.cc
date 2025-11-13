@@ -13,8 +13,7 @@ protected:
   static constexpr int OUT_FEATURES = 8;
 
   void ValidateBasicStructure(const json &j) {
-    EXPECT_TRUE(j.contains("module_type"));
-    EXPECT_TRUE(j.contains("module_name"));
+    EXPECT_TRUE(j.contains("type"));
     EXPECT_TRUE(j.contains("opt_level"));
     EXPECT_TRUE(j.contains("hls_config"));
   }
@@ -52,8 +51,7 @@ TEST_F(LinearOPT_NONEJsonTest, ToJsonBasicStructure) {
 TEST_F(LinearOPT_NONEJsonTest, ToJsonModuleInfo) {
   auto config = layer.to_json();
 
-  EXPECT_EQ(config["module_name"].get<std::string>(), "Linear");
-  EXPECT_EQ(config["module_type"].get<std::string>(), "Linear_OPT_NONE");
+  EXPECT_EQ(config["type"].get<std::string>(), "linear");
   EXPECT_EQ(config["opt_level"].get<std::string>(), "OPT_NONE");
 }
 
@@ -72,14 +70,14 @@ TEST_F(LinearOPT_NONEJsonTest, ToJsonIsValid) {
   EXPECT_FALSE(json_str.empty());
 
   auto parsed = json::parse(json_str);
-  EXPECT_EQ(parsed["module_type"].get<std::string>(),
-            config["module_type"].get<std::string>());
+  EXPECT_EQ(parsed["type"].get<std::string>(),
+            config["type"].get<std::string>());
 }
 
 TEST_F(LinearOPT_NONEJsonTest, ToJsonDataTypes) {
   auto config = layer.to_json();
 
-  EXPECT_TRUE(config["module_type"].is_string());
+  EXPECT_TRUE(config["type"].is_string());
   EXPECT_TRUE(config["opt_level"].is_string());
   EXPECT_TRUE(config["hls_config"].is_object());
 }
@@ -103,8 +101,7 @@ TEST_F(LinearOPT_ENABLEDJsonTest, ToJsonBasicStructure) {
 TEST_F(LinearOPT_ENABLEDJsonTest, ToJsonModuleInfo) {
   auto config = layer.to_json();
 
-  EXPECT_EQ(config["module_name"].get<std::string>(), "Linear");
-  EXPECT_EQ(config["module_type"].get<std::string>(), "Linear_OPT_ENABLED");
+  EXPECT_EQ(config["type"].get<std::string>(), "linear");
   EXPECT_EQ(config["opt_level"].get<std::string>(), "OPT_ENABLED");
 }
 
