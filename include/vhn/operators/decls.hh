@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../tb/tb.hh"
 #include "./elementwise.hh"
 #include "./reduce.hh"
-#include "./tb/tb.hh"
 #include <algorithm>
 #include <random>
 

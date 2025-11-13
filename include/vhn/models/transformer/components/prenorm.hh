@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../../norms/layernorm.hh"
-#include "../../../operators.hh"
+#include "../../../operators/operators.hh"
 #include "../../../opt_level.hh"
 
 #ifdef __VITIS_HLS__

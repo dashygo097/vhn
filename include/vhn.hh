@@ -1,12 +1,11 @@
 #pragma once
 
 // Common
-#include "./vhn/decls.hh"
-#include "./vhn/elementwise.hh"
-#include "./vhn/operators.hh"
 #include "./vhn/opt_level.hh"
-#include "./vhn/reduce.hh"
 #include "./vhn/types.hh"
+
+// Operators
+#include "./vhn/operators/operators.hh"
 
 // Activations
 #include "./vhn/acts/acts.hh"

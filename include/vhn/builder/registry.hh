@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef __VITIS_HLS__
-#include "./codegen.hh"
+#include "./modulegen.hh"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>

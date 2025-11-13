@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../decls.hh"
+#include "../operators/operators.hh"
 #include "./gelu_impl.hh"
 #include "./relu_impl.hh"
 #include "./sigmoid_impl.hh"

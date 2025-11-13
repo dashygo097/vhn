@@ -8,7 +8,6 @@
 #endif
 
 namespace vhn {
-
 #ifndef __VITIS_HLS__
 using json = nlohmann::json;
 #endif

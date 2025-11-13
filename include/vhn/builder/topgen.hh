@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef __VITIS_HLS__
-#include "./codegen.hh"
+#include "./modulegen.hh"
 #include "./registry.hh"
 #include <fstream>
 #include <iostream>
@@ -73,11 +73,11 @@ private:
   static void generate_header(std::ofstream &out, const std::string &json_path,
                               const json &config) {
     out << "#pragma once\n\n";
-    out << "#include \"path/to/proj/include/vhn.hh\"\n";
     out << "// ============================================\n";
     out << "// AUTO-GENERATED CODE\n";
     out << "// Generated from: " << json_path << "\n";
-    out << "// ============================================\n\n";
+    out << "// ============================================\n";
+    out << "#include \"path/to/proj/include/vhn.hh\"\n\n";
 
     std::string dtype = config["model"].value("dtype", "float");
 
