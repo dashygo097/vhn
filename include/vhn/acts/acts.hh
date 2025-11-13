@@ -7,14 +7,14 @@
 
 namespace vhn {
 // Define Activation Functions
-ELEMENTWISE_DEF(ReLU)
-ELEMENTWISE_DEF(Sigmoid)
-ELEMENTWISE_DEF(GeLU)
+ELEMENTWISE_REGISTRY(ReLU)
+ELEMENTWISE_REGISTRY(Sigmoid)
+ELEMENTWISE_REGISTRY(GeLU)
 } // namespace vhn
 
 namespace vhn::tb {
 // Define Testbenches for Activation Functions
-ELEMENTWISE_TB_DEF(ReLU)
-ELEMENTWISE_TB_DEF(Sigmoid)
-ELEMENTWISE_TB_DEF(GeLU)
+ELEMENTWISE_TB_REGISTRY(ReLU)
+ELEMENTWISE_TB_REGISTRY(Sigmoid)
+ELEMENTWISE_TB_REGISTRY(GeLU)
 } // namespace vhn::tb

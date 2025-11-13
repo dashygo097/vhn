@@ -1,6 +1,6 @@
-# HLS For ML `hls_nn`
+# Vitis HLS For Neural Networking `vhn`
 
-###### This is a Vitis HLS(High Level Synthesis) library for ML implementations and accelerations.
+###### This is a Vitis HLS(High Level Synthesis) library for neural network implementations and accelerations.
 
 ## Key Features
 
@@ -20,10 +20,10 @@ If you just want to use it with no user defined optimizations:
 #define __VITIS_HLS__
 #endif
 
-#include "path/to/proj/include/hls.hh" // Because this is a header only proj, so you can directly include it.
+#include "path/to/proj/include/vhn.hh" // Because this is a header only proj, so you can directly include it.
 FIXED(16, 8) // This defines a type called `fixed16_8` (basically it is `ap_fixed`)
-using TestLinear = hls_nn::Linear<fixed16_8, 256, 10, void, OPT_NONE>;
-using TestVarMLP = hls_nn::MLP<fixed16_8, 256, hls_nn::ReLU, void, OPT_NONE, 128, 64, 10>;
+using TestLinear = vhn::Linear<fixed16_8, 256, 10, void, OPT_NONE>;
+using TestVarMLP = vhn::MLP<fixed16_8, 256, vhn::ReLU, void, OPT_NONE, 128, 64, 10>;
 
 void linear(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
     const fixed16_8 w1[10][256], const fixed16_8 b1[10]) {
@@ -60,7 +60,7 @@ void mlp(fixed16_8 output[10 * 10], const fixed16_8 input[10 * 256],
   - [x] `Linear`
   - [x] `Softmax`
   - [x] `Conv1d`, `Conv2d`
-  - [ ] `Embedding`
+  - [x] `Embedding`
   - [ ] `Conv1d`, `Conv2d(Winograd)`
   - [ ] ...
 - [ ] `Norms`

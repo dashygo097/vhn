@@ -35,11 +35,17 @@ public:
   ~Linear() = default;
 
 #ifndef __VITIS_HLS__
-  // Json Serialization
   std::string type() const override { return "linear"; }
+  json params() const override {
+    json j;
+    j["in_features"] = IN_FEATURES;
+    j["out_features"] = OUT_FEATURES;
+    return j;
+  }
   json to_json() const override {
     json j;
     j["type"] = type();
+    j["params"] = params();
     j["opt_level"] = "OPT_NONE";
     j["hls_config"] = json::object();
     return j;

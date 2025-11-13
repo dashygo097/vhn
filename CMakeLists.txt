@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(vhn LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_program(CCACHE_PROGRAM ccache)
@@ -36,6 +36,8 @@ target_include_directories(vhn INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
+target_link_libraries(vhn INTERFACE nlohmann_json::nlohmann_json)
 
 # Colored printing
 function(print_info MSG COLOR)
@@ -81,6 +83,9 @@ make_paths_relative(REL_HEADERS VHN_HEADERS)
 
 make_preview_string(REL_HEADERS 3)
 print_info("[TRACE] Header files: ${PREVIOUS_SCOPE_VAR}" "94")
+
+# Tools
+ add_subdirectory(tools)
 
 # Testing
 include(GoogleTest)

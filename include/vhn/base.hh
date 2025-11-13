@@ -20,6 +20,7 @@ public:
 
 #ifndef __VITIS_HLS__
   virtual std::string type() const = 0;
+  virtual json params() const = 0;
   virtual json to_json() const = 0;
 
   bool dump(const std::string &filepath, int indent = 2) const {

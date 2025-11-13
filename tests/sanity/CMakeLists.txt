@@ -1,3 +1,4 @@
+set(EXECUTABLE_OUTPUT_PATH ../../bin)
 file(GLOB_RECURSE TEST_FILES *.c *.cc *.cpp)
 list(REMOVE_ITEM TEST_FILES)
 
@@ -7,7 +8,7 @@ if (TEST_FILES)
         PRIVATE
             gtest_main
             gtest
-            hls
+            vhn 
     )
     gtest_discover_tests(test_sanity
         EXTRA_ARGS --gtest_color=yes
