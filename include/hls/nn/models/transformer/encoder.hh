@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../opt_level.hh"
+#include "../../../opt_level.hh"
 #include "./attns/mha.hh"
 #include "./components/addnorm.hh"
 #include "./components/ffn.hh"

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "../hls_config.hh"
-#include "../layers/layers.hh"
-#include "../opt_level.hh"
+#include "../../opt_level.hh"
+#include "../layers/linear.hh"
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>

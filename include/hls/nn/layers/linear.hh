@@ -2,6 +2,7 @@
 
 #include "../../opt_level.hh"
 #include "../../tb/tb.hh"
+#include "../base.hh"
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -11,7 +12,6 @@
 #endif
 
 namespace hls_nn {
-
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
 class Linear;
@@ -20,7 +20,8 @@ class Linear;
 // Non-optimized version (OPT_NONE)
 // ============================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
-class Linear<DType, IN_FEATURES, OUT_FEATURES, void, OPT_NONE> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, void, OPT_NONE>
+    : public BaseModule<DType> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -32,6 +33,18 @@ public:
 
   Linear() = default;
   ~Linear() = default;
+
+  // Json Serialization
+  std::string module_name() const override { return "Linear"; }
+  std::string module_type() const override { return "Linear_OPT_NONE"; }
+  json to_json() const override {
+    json j;
+    j["module_type"] = module_type();
+    j["module_name"] = module_name();
+    j["opt_level"] = "OPT_NONE";
+    j["hls_config"] = json::object();
+    return j;
+  }
 
   static void forward(dtype output[OUT_FEATURES],
                       const dtype input[IN_FEATURES], const Weight_t weight,
@@ -130,7 +143,8 @@ private:
 // ===========================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config>
-class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED>
+    : public BaseModule<DType> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -146,6 +160,25 @@ public:
 
   Linear() = default;
   ~Linear() = default;
+
+  std::string module_name() const override { return "Linear"; }
+  std::string module_type() const override { return "Linear_OPT_ENABLED"; }
+  json to_json() const override {
+    json j;
+    j["module_type"] = module_type();
+    j["module_name"] = module_name();
+    j["in_features"] = in_features;
+    j["out_features"] = out_features;
+    j["opt_level"] = "OPT_ENABLED";
+
+    json hls_config;
+    hls_config["unroll_factor"] = unroll_factor;
+    hls_config["partition_factor"] = partition_factor;
+    hls_config["pipeline_ii"] = pipeline_ii;
+    j["hls_config"] = hls_config;
+
+    return j;
+  }
 
   static void forward(dtype output[OUT_FEATURES],
                       const dtype input[IN_FEATURES], const Weight_t weight,

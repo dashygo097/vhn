@@ -1,6 +1,7 @@
 #pragma once
-#include "../../../layers/layers.hh"
-#include "../../../opt_level.hh"
+#include "../../../../opt_level.hh"
+#include "../../../layers/linear.hh"
+#include "../../../layers/softmax.hh"
 #include <cmath>
 
 #ifdef __VITIS_HLS__

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../opt_level.hh"
+#include "../../../../opt_level.hh"
 #include <cmath>
 
 #ifdef __VITIS_HLS__
