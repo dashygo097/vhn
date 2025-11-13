@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../base.hh"
 #include <cmath>
 
 #ifdef __VITIS_HLS__
@@ -11,6 +12,18 @@ template <typename DType, int N> class SigmoidImpl {
 public:
   using dtype = DType;
   static constexpr int n = N;
+
+#ifndef __VITIS_HLS__
+  static json hparams() {
+    json j, hparams;
+    j["type"] = "Sigmoid";
+    j["hparams"] = hparams;
+
+    hparams["n"] = n;
+
+    return j;
+  }
+#endif
 
   static void kernel(dtype output, const dtype input) {
 #ifdef __VITIS_HLS__

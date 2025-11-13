@@ -21,7 +21,7 @@ class Linear;
 // ============================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES>
 class Linear<DType, IN_FEATURES, OUT_FEATURES, void, OPT_NONE>
-    : public BaseLayer {
+    : public BaseModule<DType, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -36,10 +36,9 @@ public:
 
 #ifndef __VITIS_HLS__
   static json hparams() {
-    json j;
-
-    std::string type = "Linear";
-    json hparams;
+    json j, hparams;
+    j["type"] = "Linear";
+    j["hparams"] = hparams;
 
     hparams["in_features"] = IN_FEATURES;
     hparams["out_features"] = OUT_FEATURES;
@@ -145,7 +144,8 @@ private:
 // ===========================================================================
 template <typename DType, const int IN_FEATURES, const int OUT_FEATURES,
           typename Config>
-class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED> {
+class Linear<DType, IN_FEATURES, OUT_FEATURES, Config, OPT_ENABLED>
+    : public BaseModule<DType, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int in_features = IN_FEATURES;
@@ -163,17 +163,18 @@ public:
   ~Linear() = default;
 
 #ifndef __VITIS_HLS__
-  static std::string type() { return "linear"; }
-  json to_json() {
-    json j;
-    j["type"] = type();
-    j["opt_level"] = "OPT_ENABLED";
+  static json hparams() {
+    json j, hparams, config;
+    j["type"] = "Linear";
+    j["hparams"] = hparams;
+    j["config"] = config;
 
-    json hls_config;
-    hls_config["unroll_factor"] = unroll_factor;
-    hls_config["partition_factor"] = partition_factor;
-    hls_config["pipeline_ii"] = pipeline_ii;
-    j["hls_config"] = hls_config;
+    hparams["in_features"] = IN_FEATURES;
+    hparams["out_features"] = OUT_FEATURES;
+
+    config["unroll_factor"] = unroll_factor;
+    config["partition_factor"] = partition_factor;
+    config["pipeline_ii"] = pipeline_ii;
 
     return j;
   }

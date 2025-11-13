@@ -1,19 +1,13 @@
 #pragma once
 
+#include "../base.hh"
 #include "../opt_level.hh"
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
 #endif
 
-#ifndef __VITIS_HLS__
-#include <nlohmann/json.hpp>
-#endif
-
 namespace vhn {
-#ifndef __VITIS_HLS__
-using json = nlohmann::json;
-#endif
 
 template <typename DType, typename ImplType, int N, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
@@ -32,24 +26,6 @@ public:
 
   Elementwise() = default;
   ~Elementwise() = default;
-
-#ifndef __VITIS_HLS__
-  static std::string type() { return impl::type(); }
-  static json params() {
-    json j;
-    j["n"] = n;
-    return j;
-  }
-  static json to_json() {
-    json j;
-    j["type"] = type();
-    j["params"] = params();
-    j["opt_level"] = "OPT_NONE";
-    j["hls_config"] = json::object();
-    return j;
-  }
-
-#endif
 
   static void forward(dtype output[N], const dtype input) {
 #ifdef __VITIS_HLS__
