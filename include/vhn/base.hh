@@ -15,22 +15,19 @@ namespace vhn {
 using json = nlohmann::json;
 #endif
 
-template <typename DType, OptLevel OPT_LEVEL> class BaseModule {
+template <typename Derived, typename DType, OptLevel OPT_LEVEL>
+class BaseModule {
 public:
   BaseModule() = default;
   virtual ~BaseModule() = default;
 
 #ifndef __VITIS_HLS__
-  static std::string type() { return "BaseModule"; }
-  static json hparams() { return json::object(); }
-  static std::vector<json> submodules() { return std::vector<json>(); }
-
   static json to_json() {
     json j;
-    j["type"] = type();
-    j["params"] = hparams();
+    j["type"] = Derived::type();
+    j["params"] = Derived::hparams();
 
-    auto subs = submodules();
+    auto subs = Derived::submodules();
     if (!subs.empty()) {
       j["submodules"] = json::array();
       for (const auto &sub : subs) {
@@ -45,7 +42,7 @@ public:
     else
       j["opt_level"] = "OPT_NONE";
 
-    j["hls_config"] = json::object();
+    j["hls_cfg"] = Derived::hls_cfg();
 
     return j;
   }
@@ -99,6 +96,12 @@ public:
       return false;
     }
   }
+
+protected:
+  static std::string type() { return "undefined"; }
+  static json hparams() { return json::object(); }
+  static json hls_cfg() { return json::object(); }
+  static std::vector<json> submodules() { return std::vector<json>(); }
 #endif
 };
 

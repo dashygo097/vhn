@@ -8,6 +8,7 @@
 
 namespace vhn {
 using json = nlohmann::json;
+
 class LayerRegistry {
 private:
   std::map<std::string, std::shared_ptr<UniversalCodeGen>> generators_;
