@@ -16,8 +16,8 @@ template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class Linear;
 
 template <int IN_FEATURES, int OUT_FEATURES> struct LinearHParams {
-  static constexpr int in_features = 0;
-  static constexpr int out_features = 0;
+  static constexpr int in_features = IN_FEATURES;
+  static constexpr int out_features = OUT_FEATURES;
 };
 
 // ============================================================================

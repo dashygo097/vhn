@@ -6,6 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace vhn {
 using json = nlohmann::json;
@@ -17,7 +18,6 @@ public:
     std::ostringstream oss;
 
     std::string module_name = get_module_name(module, parent_name);
-    oss << generate_config_struct(module_name, module);
 
     if (module.contains("submodules") && module["submodules"].is_array()) {
       auto submodules = module["submodules"];
@@ -26,6 +26,8 @@ public:
         oss << generate_all_configs(submodules[i], submodule_name);
       }
     }
+
+    oss << generate_config_struct(module_name, module);
 
     return oss.str();
   }
@@ -36,7 +38,6 @@ public:
     std::ostringstream oss;
 
     std::string module_name = get_module_name(module, parent_name);
-    oss << generate_type_alias(module_name, module, dtype);
 
     if (module.contains("submodules") && module["submodules"].is_array()) {
       auto submodules = module["submodules"];
@@ -45,6 +46,8 @@ public:
         oss << generate_all_type_aliases(submodules[i], dtype, submodule_name);
       }
     }
+
+    oss << generate_type_alias(module_name, module, dtype);
 
     return oss.str();
   }
@@ -82,7 +85,7 @@ public:
           oss << "const char* " << internal_name << " = \""
               << it.value().get<std::string>() << "\";\n";
         } else if (it.value().is_array()) {
-          oss << "auto " << internal_name << " = {";
+          oss << "int " << internal_name << "[] = {";
           for (size_t i = 0; i < it.value().size(); i++) {
             if (it.value()[i].is_string()) {
               oss << "\"" << it.value()[i].get<std::string>() << "\"";
@@ -96,8 +99,6 @@ public:
           oss << "};\n";
         }
       }
-    } else {
-      std::cout << "[INFO]: Module '" << name << "' has no hyperparameters.\n";
     }
 
     if (has_submodules) {
@@ -110,6 +111,7 @@ public:
     }
 
     oss << "};\n\n";
+
     oss << "struct " << name << "_cfg {\n";
 
     if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
@@ -131,9 +133,6 @@ public:
               << it.value().get<std::string>() << "\";\n";
         }
       }
-    } else {
-      std::cout << "[INFO]: Module '" << name
-                << "' has no HLS configuration.\n";
     }
 
     if (has_submodules) {
@@ -187,14 +186,6 @@ private:
     }
 
     return "OPT_NONE";
-  }
-
-  static std::string to_lowercase(const std::string &str) {
-    std::string result = str;
-    for (char &c : result) {
-      c = std::tolower(c);
-    }
-    return result;
   }
 };
 
