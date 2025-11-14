@@ -5,7 +5,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 namespace vhn {
 using json = nlohmann::json;

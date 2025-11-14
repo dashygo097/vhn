@@ -1,19 +1,24 @@
 #pragma once
 
-#ifndef VITIS_HLS
 #include "./opt_level.hh"
+
+#ifndef __VITIS_HLS__
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#endif
 
 namespace vhn {
+#ifndef __VITIS_HLS__
 using json = nlohmann::json;
+#endif
 
 template <typename DType, OptLevel OPT_LEVEL> class BaseModule {
 public:
   BaseModule() = default;
   virtual ~BaseModule() = default;
 
+#ifndef __VITIS_HLS__
   static std::string type();
   static json hparams();
   static std::vector<json> submodules();
@@ -29,6 +34,7 @@ public:
     j["hls_config"] = json::object();
     return j;
   }
-};
-} // namespace vhn
 #endif
+};
+
+} // namespace vhn

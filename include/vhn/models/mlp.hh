@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../base.hh"
 #include "../layers/linear.hh"
 #include "../opt_level.hh"
 
@@ -16,7 +17,8 @@ class MLP;
 template <typename DType,
           template <typename, int, typename, OptLevel> class ActLayer,
           int... HiddenDims>
-class MLP<DType, ActLayer, void, OPT_NONE, HiddenDims...> {
+class MLP<DType, ActLayer, void, OPT_NONE, HiddenDims...>
+    : BaseModule<DType, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int n_layers = sizeof...(HiddenDims);
@@ -30,6 +32,20 @@ public:
 
   MLP() = default;
   ~MLP() = default;
+
+#ifndef __VITIS_HLS__
+  static json hparams() {
+    json j, hparams;
+    j["type"] = "Linear";
+    j["hparams"] = hparams;
+
+    hparams["n_layers"] = n_layers;
+    hparams["hidden_dims"] =
+        std::vector<int>(hidden_dims, hidden_dims + n_layers);
+
+    return j;
+  }
+#endif
 
   template <typename... WeightBiasPairs>
   static void forward(dtype output[output_dim], const dtype input[input_dim],
@@ -102,7 +118,8 @@ private:
 template <typename DType,
           template <typename, int, typename, OptLevel> class ActLayer,
           typename Config, int... HiddenDims>
-class MLP<DType, ActLayer, Config, OPT_ENABLED, HiddenDims...> {
+class MLP<DType, ActLayer, Config, OPT_ENABLED, HiddenDims...>
+    : BaseModule<DType, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int n_layers = sizeof...(HiddenDims);
@@ -113,6 +130,20 @@ public:
 
   MLP() = default;
   ~MLP() = default;
+
+#ifndef __VITIS_HLS__
+  static json hparams() {
+    json j, hparams;
+    j["type"] = "Linear";
+    j["hparams"] = hparams;
+
+    hparams["n_layers"] = n_layers;
+    hparams["hidden_dims"] =
+        std::vector<int>(hidden_dims, hidden_dims + n_layers);
+
+    return j;
+  }
+#endif
 
   template <int IN_DIM, int OUT_DIM> using Weight_t = dtype[OUT_DIM][IN_DIM];
   template <int OUT_DIM> using Bias_t = dtype[OUT_DIM];
