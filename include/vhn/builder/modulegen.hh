@@ -1,6 +1,7 @@
 #pragma once
 
 #ifndef __VITIS_HLS__
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -64,13 +65,58 @@ public:
     }
     oss << ")\n";
 
-    oss << "struct " << name << "_config {\n";
+    oss << "struct " << name << "_hparams {\n";
+    if (module.contains("hparams") && !module["hparams"].empty()) {
+      auto hparams = module["hparams"];
+      for (auto it = hparams.begin(); it != hparams.end(); ++it) {
+        std::string internal_name = it.key();
+        oss << "  static constexpr ";
+        if (it.value().is_number_integer()) {
+          oss << "int " << internal_name << " = " << it.value() << ";\n";
+        } else if (it.value().is_number_float()) {
+          oss << "double " << internal_name << " = " << it.value() << ";\n";
+        } else if (it.value().is_boolean()) {
+          oss << "bool " << internal_name << " = "
+              << (it.value().get<bool>() ? "true" : "false") << ";\n";
+        } else if (it.value().is_string()) {
+          oss << "const char* " << internal_name << " = \""
+              << it.value().get<std::string>() << "\";\n";
+        } else if (it.value().is_array()) {
+          oss << "auto " << internal_name << " = {";
+          for (size_t i = 0; i < it.value().size(); i++) {
+            if (it.value()[i].is_string()) {
+              oss << "\"" << it.value()[i].get<std::string>() << "\"";
+            } else {
+              oss << it.value()[i];
+            }
+            if (i < it.value().size() - 1) {
+              oss << ", ";
+            }
+          }
+          oss << "};\n";
+        }
+      }
+    } else {
+      std::cout << "[INFO]: Module '" << name << "' has no hyperparameters.\n";
+    }
 
-    if (module.contains("hls_config") && !module["hls_config"].empty()) {
-      auto hls_cfg = module["hls_config"];
+    if (has_submodules) {
+      auto submodules = module["submodules"];
+      oss << "\n  // Submodule hyperparameters\n";
+      for (size_t i = 0; i < submodules.size(); i++) {
+        oss << "  using submodule" << i << "_hparams = " << name << "_sub" << i
+            << "_hparams;\n";
+      }
+    }
+
+    oss << "};\n\n";
+    oss << "struct " << name << "_cfg {\n";
+
+    if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
+      auto hls_cfg = module["hls_cfg"];
 
       for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        std::string internal_name = "_" + it.key();
+        std::string internal_name = it.key();
         oss << "  static constexpr ";
 
         if (it.value().is_number_integer()) {
@@ -85,6 +131,9 @@ public:
               << it.value().get<std::string>() << "\";\n";
         }
       }
+    } else {
+      std::cout << "[INFO]: Module '" << name
+                << "' has no HLS configuration.\n";
     }
 
     if (has_submodules) {
@@ -92,8 +141,8 @@ public:
 
       oss << "\n  // Submodule configurations\n";
       for (size_t i = 0; i < submodules.size(); i++) {
-        oss << "  using submodule" << i << "_config = " << name << "_sub" << i
-            << "_config;\n";
+        oss << "  using submodule" << i << "_cfg = " << name << "_sub" << i
+            << "_cfg;\n";
       }
     }
 
@@ -111,10 +160,9 @@ public:
 
     std::string module_type = module["type"];
     std::string opt_level = determine_opt_level(module);
-    std::string template_hparams = build_template_hparams(module, dtype);
 
-    oss << "using " << name << "_t = vhn::" << module_type << "<"
-        << template_hparams << ", " << name << "_config, " << opt_level
+    oss << "using " << name << "_t = vhn::" << module_type << "<" << dtype
+        << ", " << name << "_hparams" << ", " << name << "_cfg, " << opt_level
         << ">;\n";
 
     return oss.str();
@@ -134,46 +182,11 @@ private:
       return module["opt_level"].get<std::string>();
     }
 
-    if (module.contains("hls_config") && !module["hls_config"].empty()) {
+    if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
       return "OPT_ENABLED";
     }
 
     return "OPT_NONE";
-  }
-
-  std::string build_template_hparams(const json &module,
-                                     const std::string &dtype) const {
-    std::string result = dtype;
-
-    if (module.contains("hparams") && !module["hparams"].empty()) {
-      result += format_hparams(module["hparams"]);
-    }
-
-    return result;
-  }
-
-  std::string format_hparams(const json &hparams) const {
-    std::ostringstream oss;
-
-    for (auto it = hparams.begin(); it != hparams.end(); ++it) {
-      if (it.value().is_array() || it.value().is_object()) {
-        continue;
-      }
-
-      oss << ", ";
-
-      if (it.value().is_number_integer()) {
-        oss << it.value().get<int>();
-      } else if (it.value().is_number_float()) {
-        oss << it.value().get<double>();
-      } else if (it.value().is_boolean()) {
-        oss << (it.value().get<bool>() ? "true" : "false");
-      } else if (it.value().is_string()) {
-        oss << it.value().get<std::string>();
-      }
-    }
-
-    return oss.str();
   }
 
   static std::string to_lowercase(const std::string &str) {

@@ -11,10 +11,10 @@ void print_module_tree(const json &module, int depth = 0) {
   std::cout << indent << "└─ " << module.value("type", "Unknown") << " ["
             << module.value("opt_level", "OPT_NONE") << "]";
 
-  if (module.contains("params") && !module["params"].empty()) {
+  if (module.contains("hparams") && !module["hparams"].empty()) {
     std::cout << " (";
     bool first = true;
-    for (auto it = module["params"].begin(); it != module["params"].end();
+    for (auto it = module["hparams"].begin(); it != module["hparams"].end();
          ++it) {
       if (!first)
         std::cout << ", ";

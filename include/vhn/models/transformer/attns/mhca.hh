@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../../base.hh"
 #include "../../../opt_level.hh"
 #include <cmath>
 

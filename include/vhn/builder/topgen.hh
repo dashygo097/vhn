@@ -60,7 +60,7 @@ private:
     out << "// AUTO-GENERATED CODE\n";
     out << "// Generated from: " << json_path << "\n";
     out << "#include \"path/to/proj/include/vhn.hh\"\n\n";
-    std::string dtype = config["model"].value("dtype", "float");
+    std::string dtype = config["model"]["dtype"];
 
     out << "// Module Configuration Structs\n";
 

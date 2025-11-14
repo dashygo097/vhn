@@ -2,8 +2,7 @@
 // CNN
 
 // Transformer
-#include "./transformer/attns/fused_mha.hh"
-// #include "./transformer/attns/mha.hh"
+#include "./transformer/attns/mha.hh"
 #include "./transformer/attns/mhca.hh"
 #include "./transformer/components/addnorm.hh"
 // #include "./transformer/components/ffn.hh"
