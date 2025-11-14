@@ -1,10 +1,6 @@
 #pragma once
 
 #include "../opt_level.hh"
-#include "../tb/tb.hh"
-#include <algorithm>
-#include <iostream>
-#include <random>
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>

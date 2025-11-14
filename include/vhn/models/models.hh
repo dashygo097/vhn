@@ -13,3 +13,7 @@
 
 // Common
 #include "./mlp.hh"
+
+// Builders
+#include "./mlp_builder.hh"
+REGISTER_LAYER_BUILDER("mlp", MLPBuilder)

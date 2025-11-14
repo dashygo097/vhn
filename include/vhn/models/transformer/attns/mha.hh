@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../../base.hh"
 #include "../../../layers/linear.hh"
 #include "../../../layers/softmax.hh"
 #include "../../../opt_level.hh"
@@ -26,8 +25,7 @@ template <int D_MODEL, int NUM_HEADS, int MAX_SEQ_LEN> struct MHAConfig {
 // Non-optimized version (OPT_NONE)
 // ============================================================================
 template <typename DType, typename HParams>
-class MulHeadAttn<DType, HParams, void, OPT_NONE>
-    : BaseModule<MulHeadAttn<DType, HParams, void, OPT_NONE>, DType, OPT_NONE> {
+class MulHeadAttn<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int d_model = HParams::d_model;

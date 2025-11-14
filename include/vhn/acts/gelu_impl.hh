@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../base.hh"
 #include <cmath>
 
 #ifdef __VITIS_HLS__
@@ -12,17 +11,6 @@ template <typename Dtype, int N> class GeLUImpl {
 public:
   using dtype = Dtype;
   static constexpr int n = N;
-
-#ifndef __VITIS_HLS__
-  static std::string type() { return "GeLU"; }
-  static json hparams() {
-    json j;
-
-    j["n"] = n;
-
-    return j;
-  }
-#endif
 
   static dtype kernel(dtype x) {
     // Approximation: 0.5 * x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))

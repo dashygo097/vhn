@@ -1,5 +1,5 @@
 #pragma once
 
-#include "./modulegen.hh"
+#include "./base.hh"
+#include "./generator.hh"
 #include "./registry.hh"
-#include "./topgen.hh"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../base.hh"
 #include "../layers/linear.hh"
 #include "../opt_level.hh"
 
@@ -25,17 +24,13 @@ template <int... HIDDEN_FEATURES> struct MLPHParams {
 // Non-optimized version (OPT_NONE)
 // ============================================================================
 template <typename DType, typename HParams>
-class MLP<DType, HParams, void, OPT_NONE>
-    : public BaseModule<MLP<DType, HParams, void, OPT_NONE>, DType, OPT_NONE> {
+class MLP<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int n_layers = HParams::n_layers;
   static constexpr int in_features = HParams::in_features;
   static constexpr int out_features = HParams::out_features;
   static constexpr OptLevel opt_level = OPT_NONE;
-
-  template <int IN_DIM, int OUT_DIM> using Weight_t = dtype[OUT_DIM][IN_DIM];
-  template <int OUT_DIM> using Bias_t = dtype[OUT_DIM];
 
   MLP() = default;
   ~MLP() = default;
@@ -88,13 +83,14 @@ private:
   template <int LayerIdx, typename W_t, typename B_t, typename... Rest>
   static void forward_1d_impl(dtype *output, const dtype *input, const W_t &w,
                               const B_t &b, Rest... rest) {
-    static constexpr int in_dim = HParams::hidden_features[LayerIdx];
-    static constexpr int out_dim = HParams::hidden_features[LayerIdx + 1];
+    static constexpr int in_features = HParams::hidden_features[LayerIdx];
+    static constexpr int out_features = HParams::hidden_features[LayerIdx + 1];
     static constexpr bool is_last = (LayerIdx == n_layers - 2);
 
-    dtype layer_out[out_dim];
+    dtype layer_out[out_features];
 
-    using fc = Linear<dtype, LinearHParams<in_dim, out_dim>, void, OPT_NONE>;
+    using fc =
+        Linear<dtype, LinearHParams<in_features, out_features>, void, OPT_NONE>;
     fc::forward(layer_out, input, w, b);
 
     if constexpr (!is_last) {
@@ -103,7 +99,7 @@ private:
       }
     } else {
     LAST_COPY_LOOP:
-      for (int i = 0; i < out_dim; i++) {
+      for (int i = 0; i < out_features; i++) {
         output[i] = layer_out[i];
       }
     }

@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../base.hh"
 #include "../opt_level.hh"
-#include "../tb/tb.hh"
-#include <algorithm>
-#include <iostream>
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -24,9 +20,7 @@ template <int IN_FEATURES, int OUT_FEATURES> struct LinearHParams {
 // Non-optimized version (OPT_NONE)
 // ============================================================================
 template <typename DType, typename HParams>
-class Linear<DType, HParams, void, OPT_NONE>
-    : public BaseModule<Linear<DType, HParams, void, OPT_NONE>, DType,
-                        OPT_NONE> {
+class Linear<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
   static constexpr int in_features = HParams::in_features;
@@ -38,19 +32,6 @@ public:
 
   Linear() = default;
   ~Linear() = default;
-
-#ifndef __VITIS_HLS__
-  static std::string type() { return "Linear"; }
-
-  static json hparams() {
-    json j;
-    j["in_features"] = in_features;
-    j["out_features"] = out_features;
-    return j;
-  }
-
-  static std::vector<json> submodules() { return std::vector<json>(); }
-#endif
 
   static void forward(dtype output[out_features],
                       const dtype input[in_features], const Weight_t weight,
@@ -149,9 +130,7 @@ private:
 // Optimized version (OPT_ENABLED)
 // ============================================================================
 template <typename DType, typename HParams, typename Config>
-class Linear<DType, HParams, Config, OPT_ENABLED>
-    : public BaseModule<Linear<DType, HParams, Config, OPT_ENABLED>, DType,
-                        OPT_ENABLED> {
+class Linear<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
   static constexpr int in_features = HParams::in_features;
@@ -167,28 +146,6 @@ public:
 
   Linear() = default;
   ~Linear() = default;
-
-#ifndef __VITIS_HLS__
-  static std::string type() { return "Linear"; }
-
-  static json hparams() {
-    json j;
-    j["in_features"] = in_features;
-    j["out_features"] = out_features;
-    return j;
-  }
-
-  static json hls_cfg() {
-    json j;
-    j["unroll_factor"] = unroll_factor;
-    j["partition_factor"] = partition_factor;
-    j["pipeline_ii"] = pipeline_ii;
-
-    return j;
-  }
-
-  static std::vector<json> submodules() { return std::vector<json>(); }
-#endif
 
   static void forward(dtype output[out_features],
                       const dtype input[in_features], const Weight_t weight,

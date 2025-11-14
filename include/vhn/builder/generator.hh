@@ -1,15 +1,13 @@
 #pragma once
 
 #ifndef __VITIS_HLS__
-#include "./modulegen.hh"
+#include "registry.hh"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
-#include <string>
 
 namespace vhn {
-using json = nlohmann::json;
 
 class ModelConfigGenerator {
 public:
@@ -52,6 +50,14 @@ private:
     if (!config["modules"].is_array()) {
       throw std::runtime_error("'modules' must be an array");
     }
+
+    auto &registry = LayerRegistry::instance();
+    for (const auto &module : config["modules"]) {
+      std::string type = module.value("type", "");
+      if (!registry.has_layer(type)) {
+        throw std::runtime_error("Unknown module type: " + type);
+      }
+    }
   }
 
   static void generate_header(std::ofstream &out, const std::string &json_path,
@@ -60,52 +66,56 @@ private:
     out << "// AUTO-GENERATED CODE\n";
     out << "// Generated from: " << json_path << "\n";
     out << "#include \"path/to/proj/include/vhn.hh\"\n\n";
-    std::string dtype = config["model"]["dtype"];
 
-    out << "// Module Configuration Structs\n";
+    std::string dtype = config["model"].value("dtype", "float");
 
-    UniversalCodeGen codegen;
+    out << "// Module Configurations\n\n";
 
+    auto &registry = LayerRegistry::instance();
+
+    // dfs
     for (const auto &module : config["modules"]) {
-      std::string module_name = module.value("name", "unnamed_module");
-      out << codegen.generate_all_configs(module, module_name);
+      generate_module_recursive(out, module, module.value("name", "module"),
+                                dtype, registry);
     }
 
-    out << "\n// Module Type Aliases\n";
-
-    for (const auto &module : config["modules"]) {
-      std::string module_name = module.value("name", "unnamed_module");
-      out << codegen.generate_all_type_aliases(module, dtype, module_name);
-    }
-
-    generate_network_info(out, config);
-  }
-
-  static void generate_network_info(std::ofstream &out, const json &config) {
-    out << "\n// Network Information\n";
-
+    out << "// Network Information\n";
     out << "namespace network_info {\n";
     out << "  constexpr const char* name = \""
         << config["model"].value("name", "Network") << "\";\n";
-    out << "  constexpr const char* dtype = \""
-        << config["model"].value("dtype", "float") << "\";\n";
+    out << "  constexpr const char* dtype = \"" << dtype << "\";\n";
     out << "  constexpr int num_modules = " << config["modules"].size()
         << ";\n";
-
-    out << "\n  // Module names\n";
-    out << "  constexpr const char* module_names[] = {\n";
-    bool first = true;
-    for (const auto &module : config["modules"]) {
-      if (!first)
-        out << ",\n";
-      out << "    \"" << module.value("name", "unnamed") << "\"";
-      first = false;
-    }
-    out << "\n  };\n";
-
     out << "}\n";
+  }
+
+  static void generate_module_recursive(std::ofstream &out, const json &module,
+                                        const std::string &name,
+                                        const std::string &dtype,
+                                        LayerRegistry &registry) {
+    std::string type = module.value("type", "");
+    auto generator = registry.get_generator(type);
+
+    if (!generator) {
+      throw std::runtime_error("No generator for type: " + type);
+    }
+
+    // dfs
+    if (generator->has_submodules(module)) {
+      auto submodules = module["submodules"];
+      for (size_t i = 0; i < submodules.size(); i++) {
+        std::string subname = name + "_sub" + std::to_string(i);
+        generate_module_recursive(out, submodules[i], subname, dtype, registry);
+      }
+    }
+
+    out << "// Configuration for " << name << " (" << type << ")\n";
+    out << generator->generate_hparams(name, module);
+    out << generator->generate_config(name, module);
+    out << generator->generate_type_alias(name, dtype, module);
+    out << "\n";
   }
 };
 
 } // namespace vhn
-#endif // __VITIS_HLS__
+#endif
