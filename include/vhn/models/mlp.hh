@@ -33,20 +33,6 @@ public:
   MLP() = default;
   ~MLP() = default;
 
-#ifndef __VITIS_HLS__
-  static json hparams() {
-    json j, hparams;
-    j["type"] = "Linear";
-    j["hparams"] = hparams;
-
-    hparams["n_layers"] = n_layers;
-    hparams["hidden_dims"] =
-        std::vector<int>(hidden_dims, hidden_dims + n_layers);
-
-    return j;
-  }
-#endif
-
   template <typename... WeightBiasPairs>
   static void forward(dtype output[output_dim], const dtype input[input_dim],
                       WeightBiasPairs... params) {
@@ -130,20 +116,6 @@ public:
 
   MLP() = default;
   ~MLP() = default;
-
-#ifndef __VITIS_HLS__
-  static json hparams() {
-    json j, hparams;
-    j["type"] = "Linear";
-    j["hparams"] = hparams;
-
-    hparams["n_layers"] = n_layers;
-    hparams["hidden_dims"] =
-        std::vector<int>(hidden_dims, hidden_dims + n_layers);
-
-    return j;
-  }
-#endif
 
   template <int IN_DIM, int OUT_DIM> using Weight_t = dtype[OUT_DIM][IN_DIM];
   template <int OUT_DIM> using Bias_t = dtype[OUT_DIM];

@@ -6,15 +6,12 @@ target_link_libraries(parser PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-target_compile_definitions(parser PRIVATE
-)
-
 # Install the tool
 install(TARGETS parser 
     RUNTIME DESTINATION bin
 )
 
-# Helper function to generate configs
+# Helper function 
 function(parser_header CONFIG_JSON OUTPUT_HEADER)
     add_custom_command(
         OUTPUT ${OUTPUT_HEADER}

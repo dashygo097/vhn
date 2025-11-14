@@ -5,7 +5,6 @@
 #include "../tb/tb.hh"
 #include <algorithm>
 #include <iostream>
-#include <random>
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -35,13 +34,12 @@ public:
   ~Linear() = default;
 
 #ifndef __VITIS_HLS__
+  static std::string type() { return "Linear"; }
   static json hparams() {
-    json j, hparams;
-    j["type"] = "Linear";
-    j["hparams"] = hparams;
+    json j;
 
-    hparams["in_features"] = IN_FEATURES;
-    hparams["out_features"] = OUT_FEATURES;
+    j["in_features"] = IN_FEATURES;
+    j["out_features"] = OUT_FEATURES;
 
     return j;
   }

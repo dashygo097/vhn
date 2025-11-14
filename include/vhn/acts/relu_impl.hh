@@ -12,12 +12,11 @@ public:
   static constexpr int n = N;
 
 #ifndef __VITIS_HLS__
+  static std::string type() { return "ReLU"; };
   static json hparams() {
-    json j, hparams;
-    j["type"] = "ReLU";
-    j["hparams"] = hparams;
+    json j;
 
-    hparams["n"] = n;
+    j["n"] = n;
 
     return j;
   }

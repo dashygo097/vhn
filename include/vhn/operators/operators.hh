@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./decls.hh"
 #include "./operator_impl.hh"
+#include "./registry.hh"
 
 namespace vhn {
 // Define Common Operators
