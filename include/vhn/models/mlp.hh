@@ -2,7 +2,6 @@
 
 #include "../layers/linear.hh"
 #include "../opt_level.hh"
-#include <type_traits>
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -19,10 +18,6 @@ template <int... HIDDEN_FEATURES> struct MLPHParams {
       HIDDEN_FEATURES...};
   static constexpr int in_features = hidden_features[0];
   static constexpr int out_features = hidden_features[n_layers];
-};
-
-template <int BATCH_LOOP_II = 1> struct MLPConfig {
-  static constexpr int batch_loop_ii = BATCH_LOOP_II;
 };
 
 // ============================================================================
@@ -175,35 +170,18 @@ public:
   }
 
 private:
-  template <int LayerIdx>
-  using get_submodule_config =
-      typename Config::template submodule_cfg<LayerIdx>;
-
-  template <typename T> struct is_void_type : std::is_same<T, void> {};
-
-  template <typename SubConfig> struct get_opt_level {
-    static constexpr OptLevel value =
-        std::is_same<SubConfig, void>::value ? OPT_NONE : OPT_ENABLED;
-  };
-
   template <int LayerIdx, typename W_t, typename B_t, typename... Rest>
   static void forward_1d_impl(dtype *output, const dtype *input, const W_t &w,
                               const B_t &b, Rest... rest) {
-#ifdef __VITIS_HLS__
-#pragma HLS DATAFLOW
-#endif
-
     static constexpr int in_features = HParams::hidden_features[LayerIdx];
     static constexpr int out_features = HParams::hidden_features[LayerIdx + 1];
     static constexpr bool is_last = (LayerIdx == n_layers - 2);
 
     dtype layer_out[out_features];
-#ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = layer_out complete dim = 0
-#endif
 
-    using LayerConfig = get_submodule_config<LayerIdx>;
-    static constexpr OptLevel layer_opt = get_opt_level<LayerConfig>::value;
+    using LayerConfig = typename Config::template LayerCfg<LayerIdx>::type;
+    static constexpr OptLevel layer_opt =
+        Config::template LayerCfg<LayerIdx>::opt_level;
 
     using fc = Linear<dtype, LinearHParams<in_features, out_features>,
                       LayerConfig, layer_opt>;

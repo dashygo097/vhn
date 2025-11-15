@@ -16,13 +16,6 @@ template <int IN_FEATURES, int OUT_FEATURES> struct LinearHParams {
   static constexpr int out_features = OUT_FEATURES;
 };
 
-template <int UNROLL_FACTOR = 1, int PARTITION_FACTOR = 1, int PIPELINE_II = 1>
-struct LinearConfig {
-  static constexpr int unroll_factor = UNROLL_FACTOR;
-  static constexpr int partition_factor = PARTITION_FACTOR;
-  static constexpr int pipeline_ii = PIPELINE_II;
-};
-
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================

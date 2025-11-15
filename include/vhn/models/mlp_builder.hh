@@ -61,7 +61,6 @@ public:
       } else {
         oss << "  static constexpr int batch_loop_ii = 1;\n";
       }
-
     } else {
       oss << "  static constexpr int batch_loop_ii = 1;\n";
     }
@@ -69,52 +68,33 @@ public:
     if (has_submodules(module)) {
       auto submodules = module["submodules"];
 
-      oss << "\n  // Submodule configuration selector\n";
-      oss << "  template <int LayerIdx>\n";
-      oss << "  using submodule_cfg = typename std::conditional<LayerIdx == "
-             "0, ";
+      oss << "\n  // Per-layer configuration mapping\n";
+      oss << "  template <int LayerIdx, typename = void>\n";
+      oss << "  struct LayerCfg {\n";
+      oss << "    using type = void;\n";
+      oss << "    static constexpr OptLevel opt_level = OPT_NONE;\n";
+      oss << "  };\n";
 
+      // Generate partial specialization for each layer using
+      // std::integral_constant
       for (size_t i = 0; i < submodules.size(); i++) {
         std::string submodule_opt =
             submodules[i].value("opt_level", "OPT_NONE");
 
-        if (i == 0) {
-          if (submodules.size() == 1) {
-            if (submodule_opt == "OPT_NONE") {
-              oss << "void, void>::type";
-            } else {
-              oss << name << "_sub0_cfg, void>::type";
-            }
-          } else {
-            if (submodule_opt == "OPT_NONE") {
-              oss << "void, typename std::conditional<LayerIdx == 1, ";
-            } else {
-              oss << name
-                  << "_sub0_cfg, typename std::conditional<LayerIdx == 1, ";
-            }
-          }
-        } else if (i == submodules.size() - 1) {
-          if (submodule_opt == "OPT_NONE") {
-            oss << "void, void";
-          } else {
-            oss << name << "_sub" << i << "_cfg, void";
-          }
-          for (size_t j = 1; j < submodules.size(); j++) {
-            oss << ">::type";
-          }
-        } else {
-          if (submodule_opt == "OPT_NONE") {
-            oss << "void, typename std::conditional<LayerIdx == " << (i + 1)
-                << ", ";
-          } else {
-            oss << name << "_sub" << i
-                << "_cfg, typename std::conditional<LayerIdx == " << (i + 1)
-                << ", ";
-          }
-        }
-      }
+        oss << "\n  template <typename T>\n";
+        oss << "  struct LayerCfg<" << i << ", T> {\n";
 
-      oss << ";\n";
+        if (submodule_opt == "OPT_NONE") {
+          oss << "    using type = void;\n";
+          oss << "    static constexpr OptLevel opt_level = OPT_NONE;\n";
+        } else {
+          oss << "    using type = " << name << "_sub" << i << "_cfg;\n";
+          oss << "    static constexpr OptLevel opt_level = " << submodule_opt
+              << ";\n";
+        }
+
+        oss << "  };\n";
+      }
     }
 
     oss << "};\n\n";
@@ -128,7 +108,6 @@ public:
     std::ostringstream oss;
 
     std::string opt_level = module.value("opt_level", "OPT_NONE");
-
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
