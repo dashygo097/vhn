@@ -8,7 +8,7 @@
 - Easy to use with **header-only structure**
 - Lower overhead with **Modern C++ and generic programming**
 - **Configurable** kernels for users.
-- Json interpreter for kernel configurations.
+- **Json** interpreter for kernel configurations.
 
 ## How To Use
 
