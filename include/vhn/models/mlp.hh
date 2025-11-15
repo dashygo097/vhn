@@ -51,7 +51,6 @@ public:
                       WeightBiasPairs... params) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -139,7 +138,6 @@ public:
                       WeightBiasPairs... params) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -173,6 +171,9 @@ private:
   template <int LayerIdx, typename W_t, typename B_t, typename... Rest>
   static void forward_1d_impl(dtype *output, const dtype *input, const W_t &w,
                               const B_t &b, Rest... rest) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
     static constexpr int in_features = HParams::hidden_features[LayerIdx];
     static constexpr int out_features = HParams::hidden_features[LayerIdx + 1];
     static constexpr bool is_last = (LayerIdx == n_layers - 2);

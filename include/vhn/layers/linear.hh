@@ -201,6 +201,7 @@ private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
+#pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
     partition_factor dim = 2
