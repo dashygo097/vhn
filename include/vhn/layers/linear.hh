@@ -47,12 +47,12 @@ public:
                       const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(output[b], input[b], weight, bias);
     }
@@ -62,68 +62,42 @@ public:
                       const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(&output[b * out_features], &input[b * in_features],
                       weight, bias);
     }
   }
 
-#ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias) {
-#pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
-  }
-#endif
-
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
   OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS INLINE off
+#pragma HLS PIPELINE II = 1
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
 #endif
       dtype acc = dtype(0);
 
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#endif
         acc += input[j] * weight[i][j];
       }
       output[i] = acc + bias[i];
     }
   }
-
-#ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias) {
-    dtype input_buffer[in_features];
-
-  READ_INPUT:
-    for (int j = 0; j < in_features; j++) {
-      input_buffer[j] = input_stream.read();
-    }
-
-  OUTER_LOOP:
-    for (int i = 0; i < out_features; i++) {
-      dtype acc = dtype(0);
-
-    INNER_LOOP:
-      for (int j = 0; j < in_features; j++) {
-        acc += input_buffer[j] * weight[i][j];
-      }
-      output_stream.write(acc + bias[i]);
-    }
-  }
-#endif
 };
 
 // ============================================================================
@@ -139,7 +113,6 @@ public:
 
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Weight_t = dtype[out_features][in_features];
   using Bias_t = dtype[out_features];
@@ -161,12 +134,12 @@ public:
                       const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(output[b], input[b], weight, bias);
     }
@@ -176,86 +149,67 @@ public:
                       const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(&output[b * out_features], &input[b * in_features],
                       weight, bias);
     }
   }
 
-#ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias) {
-#pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
-  }
-#endif
-
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+
+    constexpr bool should_partition = (partition_factor > 1) &&
+                                      (in_features <= 1024) &&
+                                      (out_features <= 512);
+
+    if constexpr (should_partition) {
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
     partition_factor dim = 2
 #pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
+    } else {
+#pragma HLS BIND_STORAGE variable = weight type = rom_2p impl = bram
+#pragma HLS BIND_STORAGE variable = input type = ram_1p impl = bram
+#pragma HLS BIND_STORAGE variable = bias type = rom_1p impl = bram
+    }
 #endif
 
   OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS PIPELINE style = flp
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
 #endif
       dtype acc = dtype(0);
+#ifdef __VITIS_HLS__
+#pragma HLS BIND_OP variable = acc op = add impl = dsp
+#endif
 
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+        constexpr bool should_unroll =
+            (unroll_factor > 1) && (in_features <= 512);
+        if constexpr (should_unroll) {
 #pragma HLS UNROLL factor = unroll_factor
+        }
+#pragma HLS BIND_OP variable = acc op = mul impl = dsp
 #endif
         acc += input[j] * weight[i][j];
       }
       output[i] = acc + bias[i];
     }
   }
-
-#ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias) {
-    dtype input_buffer[in_features];
-#pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
-    partition_factor
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
-    partition_factor dim = 2
-#pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
-
-  READ_INPUT:
-    for (int j = 0; j < in_features; j++) {
-#pragma HLS PIPELINE II = pipeline_ii
-      input_buffer[j] = input_stream.read();
-    }
-
-  OUTER_LOOP:
-    for (int i = 0; i < out_features; i++) {
-#pragma HLS PIPELINE II = pipeline_ii
-      dtype acc = dtype(0);
-
-    INNER_LOOP:
-      for (int j = 0; j < in_features; j++) {
-#pragma HLS UNROLL factor = unroll_factor
-        acc += input_buffer[j] * weight[i][j];
-      }
-      output_stream.write(acc + bias[i]);
-    }
-  }
-#endif
 };
+
 } // namespace vhn

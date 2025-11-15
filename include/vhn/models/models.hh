@@ -12,11 +12,7 @@
 // #include "./transformer/encoder.hh"
 
 // Common
-#include "./mlp.hh"
 
 // Builders
 #ifndef __VITIS_HLS__
-#include "./mlp_builder.hh"
-
-REGISTER_LAYER_BUILDER("mlp", MLPBuilder)
 #endif

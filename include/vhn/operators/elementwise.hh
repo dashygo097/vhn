@@ -8,25 +8,29 @@
 
 namespace vhn {
 
-template <typename DType, typename ImplType, int N, typename Config = void,
-          OptLevel OPT_LEVEL = OPT_NONE>
+template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class Elementwise;
+
+template <typename ImplType, int N> struct ElementwiseHParams {
+  using impl = ImplType;
+  static constexpr int n = N;
+};
 
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
-template <typename DType, typename ImplType, int N>
-class Elementwise<DType, ImplType, N, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class Elementwise<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
+  using impl = typename HParams::impl;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_NONE;
 
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[N], const dtype input) {
+  static void forward(dtype output[n], const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -34,14 +38,14 @@ public:
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[N], const dtype input[N]) {
+  static void forward(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[N], const dtype input1[N],
+  static void forward(dtype output[n], const dtype input1[n],
                       const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -50,15 +54,15 @@ public:
     forward_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[N], const dtype input1[N],
-                      const dtype input2[N]) {
+  static void forward(dtype output[n], const dtype input1[n],
+                      const dtype input2[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[][N], const dtype input[][N],
+  static void forward(dtype output[][n], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -73,8 +77,8 @@ public:
     }
   }
 
-  static void forward(dtype output[][N], const dtype input1[][N],
-                      const dtype input2[][N], const int batch_size) {
+  static void forward(dtype output[][n], const dtype input1[][n],
+                      const dtype input2[][n], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -99,7 +103,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], input);
+      forward_1d_impl(&output[b * n], input);
     }
   }
 
@@ -113,7 +117,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input[b * N]);
+      forward_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
@@ -130,7 +134,7 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #endif
 
-      forward_1d_impl(&output[b * N], &input1[b * N], input2);
+      forward_1d_impl(&output[b * n], &input1[b * n], input2);
     }
   }
 
@@ -145,7 +149,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input1[b * N], &input2[b * N]);
+      forward_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
     }
   }
 
@@ -210,14 +214,14 @@ private:
 #ifdef __VITIS_HLS__
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       input_buffer[i] = input_stream.read();
     }
   ELEMENTWISE_STREAM_LOOP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       output_stream.write(impl::kernel(input_buffer[i]));
     }
   }
@@ -225,21 +229,21 @@ private:
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream1,
                                      hls::stream<dtype> &input_stream2) {
-    dtype input_buffer1[N];
-    dtype input_buffer2[N];
+    dtype input_buffer1[n];
+    dtype input_buffer2[n];
 
   READ_INPUT1:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       input_buffer1[i] = input_stream1.read();
     }
 
   READ_INPUT2:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       input_buffer2[i] = input_stream2.read();
     }
 
   ELEMENTWISE_STREAM_LOOP_2:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       output_stream.write(impl::kernel(input_buffer1[i], input_buffer2[i]));
     }
   }
@@ -250,12 +254,12 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
-template <typename DType, typename ImplType, int N, typename Config>
-class Elementwise<DType, ImplType, N, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class Elementwise<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
+  using impl = typename HParams::impl;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int unroll_factor = Config::_unroll_factor;
@@ -265,7 +269,7 @@ public:
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[N], const dtype input) {
+  static void forward(dtype output[n], const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -273,14 +277,14 @@ public:
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[N], const dtype input[N]) {
+  static void forward(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[N], const dtype input1[N],
+  static void forward(dtype output[n], const dtype input1[n],
                       const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -289,15 +293,15 @@ public:
     forward_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[N], const dtype input1[N],
-                      const dtype input2[N]) {
+  static void forward(dtype output[n], const dtype input1[n],
+                      const dtype input2[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[][N], const dtype input[][N],
+  static void forward(dtype output[][n], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -312,8 +316,8 @@ public:
     }
   }
 
-  static void forward(dtype output[][N], const dtype input1[][N],
-                      const dtype input2[][N], const int batch_size) {
+  static void forward(dtype output[][n], const dtype input1[][n],
+                      const dtype input2[][n], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -338,7 +342,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], input);
+      forward_1d_impl(&output[b * n], input);
     }
   }
 
@@ -352,7 +356,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input[b * N]);
+      forward_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
@@ -369,7 +373,7 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #endif
 
-      forward_1d_impl(&output[b * N], &input1[b * N], input2);
+      forward_1d_impl(&output[b * n], &input1[b * n], input2);
     }
   }
 
@@ -384,7 +388,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input1[b * N], &input2[b * N]);
+      forward_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
     }
   }
 
@@ -474,18 +478,18 @@ private:
 #ifdef __VITIS_HLS__
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer[i] = input_stream.read();
     }
 
   ELEMENTWISE_STREAM_LOOP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
       output_stream.write(impl::kernel(input_buffer[i]));
@@ -495,27 +499,27 @@ private:
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream1,
                                      hls::stream<dtype> &input_stream2) {
-    dtype input_buffer1[N];
-    dtype input_buffer2[N];
+    dtype input_buffer1[n];
+    dtype input_buffer2[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer1 cyclic factor =           \
     partition_factor
 #pragma HLS ARRAY_PARTITION variable = input_buffer2 cyclic factor =           \
     partition_factor
 
   READ_INPUT1:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer1[i] = input_stream1.read();
     }
 
   READ_INPUT2:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer2[i] = input_stream2.read();
     }
 
   ELEMENTWISE_STREAM_LOOP_2:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
       output_stream.write(impl::kernel(input_buffer1[i], input_buffer2[i]));

@@ -14,6 +14,7 @@ public:
   virtual ~BaseBuilder() = default;
 
   virtual std::string generate_hparams(const std::string &name,
+                                       const std::string &dtype,
                                        const json &module) const = 0;
 
   virtual std::string generate_config(const std::string &name,

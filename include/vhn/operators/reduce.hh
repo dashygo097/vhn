@@ -6,18 +6,14 @@
 #endif
 
 namespace vhn {
-template <const int UNROLL_FACTOR, const int PARTITION_FACTOR,
-          const int PIPELINE_II, const bool _USE_REDUCE_TREE = true>
-struct ReduceConfig {
-  static constexpr int _unroll_factor = UNROLL_FACTOR;
-  static constexpr int _partition_factor = PARTITION_FACTOR;
-  static constexpr int _pipeline_ii = PIPELINE_II;
-  static constexpr bool _use_reduce_tree = _USE_REDUCE_TREE;
-};
 
-template <typename DType, typename ImplType, int N, typename Config = void,
-          OptLevel OPT_LEVEL = OPT_NONE>
+template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class Reduce;
+
+template <typename ImplType, int N> struct ReduceHParams {
+  using impl = ImplType;
+  static constexpr int n = N;
+};
 
 constexpr int log2_ceil(int x) {
   return (x <= 1) ? 0 : 1 + log2_ceil((x + 1) / 2);
@@ -30,32 +26,32 @@ constexpr int next_power_of_2(int x) {
 // ============================================================================
 // Non-optimized version (OPT_NONE) - Always Sequential
 // ============================================================================
-template <typename DType, typename ImplType, int N>
-class Reduce<DType, ImplType, N, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class Reduce<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
+  using impl = typename HParams::impl;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_NONE;
 
   Reduce() = default;
   ~Reduce() = default;
 
-  static dtype forward(const dtype input[N]) {
+  static dtype forward(const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     return forward_sequential(input);
   }
 
-  static void forward(dtype &output, const dtype input[N]) {
+  static void forward(dtype &output, const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     output = forward_sequential(input);
   }
 
-  static void forward(dtype output[], const dtype input[][N],
+  static void forward(dtype output[], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -80,7 +76,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_sequential(&input[b * N]);
+      output[b] = forward_sequential(&input[b * n]);
     }
   }
 
@@ -105,7 +101,7 @@ private:
     dtype acc = dtype(0);
 
   REDUCE_LOOP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       acc = impl::kernel(acc, input[i]);
     }
 
@@ -114,18 +110,18 @@ private:
 
 #ifdef __VITIS_HLS__
   static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer complete
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = 1
       input_buffer[i] = input_stream.read();
     }
 
     dtype acc = dtype(0);
   REDUCE_STREAM_LOOP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       acc = impl::kernel(acc, input_buffer[i]);
     }
 
@@ -137,12 +133,12 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED) - Sequential or Tree based on Config
 // ============================================================================
-template <typename DType, typename ImplType, int N, typename Config>
-class Reduce<DType, ImplType, N, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class Reduce<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  using impl = ImplType;
-  static constexpr int n = N;
+  using impl = typename HParams::impl;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int unroll_factor = Config::_unroll_factor;
@@ -150,13 +146,13 @@ public:
   static constexpr int pipeline_ii = Config::_pipeline_ii;
   static constexpr bool use_tree = Config::_use_reduce_tree;
 
-  static constexpr int num_stages = log2_ceil(N);
-  static constexpr int padded_n = next_power_of_2(N);
+  static constexpr int num_stages = log2_ceil(n);
+  static constexpr int padded_n = next_power_of_2(n);
 
   Reduce() = default;
   ~Reduce() = default;
 
-  static dtype forward(const dtype input[N]) {
+  static dtype forward(const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -167,14 +163,14 @@ public:
     }
   }
 
-  static void forward(dtype &output, const dtype input[N]) {
+  static void forward(dtype &output, const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     output = forward(input);
   }
 
-  static void forward(dtype output[], const dtype input[][N],
+  static void forward(dtype output[], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -199,7 +195,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward(&input[b * N]);
+      output[b] = forward(&input[b * n]);
     }
   }
 
@@ -226,7 +222,7 @@ private:
     dtype acc = dtype(0);
 
   REDUCE_LOOP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
@@ -255,7 +251,7 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-      if (i < N) {
+      if (i < n) {
         padded_input[i] = input[i];
       } else {
         padded_input[i] = dtype(0);
@@ -311,12 +307,12 @@ private:
 
 #ifdef __VITIS_HLS__
   static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer[i] = input_stream.read();
     }
@@ -326,7 +322,7 @@ private:
     } else {
       dtype acc = dtype(0);
     REDUCE_STREAM_LOOP:
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
         acc = impl::kernel(acc, input_buffer[i]);

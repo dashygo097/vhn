@@ -14,14 +14,16 @@
   template <typename DType, int N, typename Config = void,                     \
             OptLevel OPT_LEVEL = OPT_NONE>                                     \
   using ELEMENTWISE_NAME =                                                     \
-      Elementwise<DType, ELEMENTWISE_NAME##Impl<DType, N>, N, Config,          \
-                  OPT_LEVEL>;
+      Elementwise<DType,                                                       \
+                  ElementwiseHParams<ELEMENTWISE_NAME##Impl<DType, N>, N>,     \
+                  Config, OPT_LEVEL>;
 
 #define REDUCE_REGISTRY(REDUCE_NAME)                                           \
   template <typename DType, int N, typename Config = void,                     \
             OptLevel OPT_LEVEL = OPT_NONE>                                     \
   using Reduce##REDUCE_NAME =                                                  \
-      Reduce<DType, REDUCE_NAME##Impl<DType, N>, N, Config, OPT_LEVEL>;
+      Reduce<DType, ReduceHParams<REDUCE_NAME##Impl<DType, N>, N>, Config,     \
+             OPT_LEVEL>;
 
 #define ELEMENTWISE_TB_REGISTRY(ELEMENTWISE_NAME)                              \
   template <const int N> class ELEMENTWISE_NAME##TestCase {                    \

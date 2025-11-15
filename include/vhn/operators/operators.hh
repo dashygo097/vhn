@@ -25,3 +25,12 @@ REDUCE_TB_REGISTRY(Min)
 REDUCE_TB_REGISTRY(Sum)
 REDUCE_TB_REGISTRY(Mean)
 } // namespace vhn::tb
+
+// Builders
+#ifndef __VITIS_HLS__
+#include "./elementwise_builder.hh"
+#include "./reduce_builder.hh"
+
+REGISTER_LAYER_BUILDER("elementwise", ElementwiseBuilder)
+REGISTER_LAYER_BUILDER("reduce", ReduceBuilder)
+#endif

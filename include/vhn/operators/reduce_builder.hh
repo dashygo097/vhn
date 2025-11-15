@@ -6,7 +6,7 @@
 
 namespace vhn {
 
-class LinearBuilder : public BaseBuilder {
+class ReduceBuilder : public BaseBuilder {
 public:
   std::string generate_hparams(const std::string &name,
                                const std::string &dtype,
@@ -14,29 +14,40 @@ public:
     std::ostringstream oss;
 
     if (!module.contains("hparams")) {
-      throw std::runtime_error("Linear module '" + name + "' missing params");
+      throw std::runtime_error("Reduce module '" + name + "' missing hparams");
     }
 
     auto hparams = module["hparams"];
 
-    if (!hparams.contains("in_features") ||
-        !hparams["in_features"].is_number_unsigned()) {
-      throw std::runtime_error("Linear module '" + name +
-                               "' missing in_features param");
+    if (!hparams.contains("n")) {
+      throw std::runtime_error("Reduce module '" + name +
+                               "' missing 'n' parameter");
     }
 
-    if (!hparams.contains("out_features") ||
-        !hparams["out_features"].is_number_unsigned()) {
-      throw std::runtime_error("Linear module '" + name +
-                               "' missing out_features param");
+    if (!hparams.contains("op")) {
+      throw std::runtime_error("Reduce module '" + name +
+                               "' missing 'op' parameter");
     }
 
-    auto in_features = hparams["in_features"];
-    auto out_features = hparams["out_features"];
+    int n = hparams["n"].get<int>();
+    std::string op = hparams["op"].get<std::string>();
 
-    oss << "using " << name << "_hparams = vhn::LinearHParams<";
-    oss << in_features << ", " << out_features;
-    oss << ">;\n\n";
+    std::string impl_class;
+
+    if (op == "sum") {
+      impl_class = "vhn::SumImpl";
+    } else if (op == "mean") {
+      impl_class = "vhn::MeanImpl";
+    } else if (op == "max") {
+      impl_class = "vhn::MaxImpl";
+    } else if (op == "min") {
+      impl_class = "vhn::MinImpl";
+    } else {
+      throw std::runtime_error("Unsupported reduce operation: " + op);
+    }
+
+    oss << "using " << name << "_hparams = vhn::ReduceHParams<" << impl_class
+        << "<" << dtype << ", " << n << ">, " << n << ">;\n";
 
     return oss.str();
   }
@@ -58,10 +69,10 @@ public:
 
       for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
         if (it.value().is_boolean()) {
-          oss << "  static constexpr bool " << it.key() << " = "
+          oss << "  static constexpr bool _" << it.key() << " = "
               << (it.value().get<bool>() ? "true" : "false") << ";\n";
         } else if (it.value().is_number_integer()) {
-          oss << "  static constexpr int " << it.key() << " = "
+          oss << "  static constexpr int _" << it.key() << " = "
               << it.value().get<int>() << ";\n";
         }
       }
@@ -78,11 +89,10 @@ public:
     std::ostringstream oss;
 
     std::string opt_level = module.value("opt_level", "OPT_NONE");
-
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::Linear<" << dtype << ", " << name
+    oss << "using " << name << "_t = vhn::Reduce<" << dtype << ", " << name
         << "_hparams, " << config_type << ", " << opt_level << ">;\n";
 
     return oss.str();

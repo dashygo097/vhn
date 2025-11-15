@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../mlp.hh"
+#include "../../../layers/linear.hh"
+#include "../../../operators/elementwise.hh"
 
 #ifdef __VITIS_HLS__
 #include <hls_stream.h>
@@ -8,34 +9,45 @@
 
 namespace vhn {
 
-template <typename DType, const int D_MODEL, const int D_FF,
-          template <typename, int, typename, OptLevel> class ActLayer,
-          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
+template <typename DType, typename HParams, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
 class FFN;
 
-// ============================================================================
-// FFN specialization for OPT_NONE (using MLP)
-// ============================================================================
-template <typename DType, const int D_MODEL, const int D_FF,
-          template <typename, int, typename, OptLevel> class ActLayer>
-class FFN<DType, D_MODEL, D_FF, ActLayer, void, OPT_NONE> {
-public:
-  using dtype = DType;
+template <int D_MODEL, int D_FF, typename ActImpl> class FFNHParams {
+  using act = ActImpl;
   static constexpr int d_model = D_MODEL;
   static constexpr int d_ff = D_FF;
+};
+
+// ============================================================================
+// FFN specialization for OPT_NONE
+// ============================================================================
+template <typename DType, typename HParams>
+class FFN<DType, HParams, void, OPT_NONE> {
+public:
+  using dtype = DType;
+  using act = typename HParams::act;
+  static constexpr int d_model = HParams::d_model;
+  static constexpr int d_ff = HParams::d_ff;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using W1_t = dtype[D_FF][D_MODEL];
-  using b1_t = dtype[D_FF];
-  using W2_t = dtype[D_MODEL][D_FF];
-  using b2_t = dtype[D_MODEL];
+  using W1_t = dtype[d_ff][d_model];
+  using b1_t = dtype[d_ff];
+  using W2_t = dtype[d_model][d_ff];
+  using b2_t = dtype[d_model];
+
+  using fc1_config = LinearHParams<d_model, d_ff>;
+  using act_config = ElementwiseHParams<d_ff, act>;
+  using fc2_config = LinearHParams<d_ff, d_model>;
+
+  using fc1 = Linear<dtype, fc1_config, void, OPT_NONE>;
+  using act = Elementwise<dtype, act_config, void, OPT_NONE>;
+  using fc2 = Linear<dtype, fc2_config, void, OPT_NONE>;
 
   FFN() = default;
   ~FFN() = default;
 
-  using mlp = MLP<DType, ActLayer, void, OPT_NONE, D_MODEL, D_FF, D_MODEL>;
-
-  static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
+  static void forward(dtype output[][d_model], const dtype input[][d_model],
                       const int actual_len, const W1_t w1, const b1_t b1,
                       const W2_t w2, const b2_t b2) {
 #ifdef __VITIS_HLS__
@@ -44,7 +56,7 @@ public:
     mlp::forward(output, input, actual_len, w1, b1, w2, b2);
   }
 
-  static void forward(dtype output[D_MODEL], const dtype input[D_MODEL],
+  static void forward(dtype output[d_model], const dtype input[d_model],
                       const W1_t w1, const b1_t b1, const W2_t w2,
                       const b2_t b2) {
 #ifdef __VITIS_HLS__

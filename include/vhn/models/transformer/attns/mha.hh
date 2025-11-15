@@ -15,7 +15,7 @@ template <typename DType, typename HParams, typename Config,
           OptLevel OPT_LEVEL = OPT_NONE>
 class MulHeadAttn;
 
-template <int D_MODEL, int NUM_HEADS, int MAX_SEQ_LEN> struct MHAConfig {
+template <int D_MODEL, int NUM_HEADS, int MAX_SEQ_LEN> struct MHAHParams {
   static constexpr int d_model = D_MODEL;
   static constexpr int num_heads = NUM_HEADS;
   static constexpr int max_seq_len = MAX_SEQ_LEN;
