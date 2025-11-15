@@ -40,26 +40,81 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &module) const override {
+    std::string opt_level = module.value("opt_level", "OPT_NONE");
+
+    if (opt_level == "OPT_NONE") {
+      return "";
+    }
+
     std::ostringstream oss;
 
     oss << "struct " << name << "_cfg {\n";
 
-    if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
+    bool has_hls_cfg = module.contains("hls_cfg") && !module["hls_cfg"].empty();
+
+    if (has_hls_cfg) {
       auto hls_cfg = module["hls_cfg"];
 
-      for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        oss << "  static constexpr int " << it.key() << " = " << it.value()
-            << ";\n";
+      if (hls_cfg.contains("batch_loop_ii")) {
+        oss << "  static constexpr int batch_loop_ii = "
+            << hls_cfg["batch_loop_ii"].get<int>() << ";\n";
+      } else {
+        oss << "  static constexpr int batch_loop_ii = 1;\n";
       }
+
+    } else {
+      oss << "  static constexpr int batch_loop_ii = 1;\n";
     }
 
     if (has_submodules(module)) {
       auto submodules = module["submodules"];
-      oss << "\n  // Submodule configurations\n";
+
+      oss << "\n  // Submodule configuration selector\n";
+      oss << "  template <int LayerIdx>\n";
+      oss << "  using submodule_cfg = typename std::conditional<LayerIdx == "
+             "0, ";
+
       for (size_t i = 0; i < submodules.size(); i++) {
-        oss << "  using submodule" << i << "_cfg = " << name << "_sub" << i
-            << "_cfg;\n";
+        std::string submodule_opt =
+            submodules[i].value("opt_level", "OPT_NONE");
+
+        if (i == 0) {
+          if (submodules.size() == 1) {
+            if (submodule_opt == "OPT_NONE") {
+              oss << "void, void>::type";
+            } else {
+              oss << name << "_sub0_cfg, void>::type";
+            }
+          } else {
+            if (submodule_opt == "OPT_NONE") {
+              oss << "void, typename std::conditional<LayerIdx == 1, ";
+            } else {
+              oss << name
+                  << "_sub0_cfg, typename std::conditional<LayerIdx == 1, ";
+            }
+          }
+        } else if (i == submodules.size() - 1) {
+          if (submodule_opt == "OPT_NONE") {
+            oss << "void, void";
+          } else {
+            oss << name << "_sub" << i << "_cfg, void";
+          }
+          for (size_t j = 1; j < submodules.size(); j++) {
+            oss << ">::type";
+          }
+        } else {
+          if (submodule_opt == "OPT_NONE") {
+            oss << "void, typename std::conditional<LayerIdx == " << (i + 1)
+                << ", ";
+          } else {
+            oss << name << "_sub" << i
+                << "_cfg, typename std::conditional<LayerIdx == " << (i + 1)
+                << ", ";
+          }
+        }
       }
+
+      oss << ";\n";
     }
 
     oss << "};\n\n";
@@ -74,8 +129,11 @@ public:
 
     std::string opt_level = module.value("opt_level", "OPT_NONE");
 
+    std::string config_type =
+        (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
+
     oss << "using " << name << "_t = vhn::MLP<" << dtype << ", " << name
-        << "_hparams, " << name << "_cfg, " << opt_level << ">;\n";
+        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
 
     return oss.str();
   }

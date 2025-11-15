@@ -42,6 +42,12 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &module) const override {
+    std::string opt_level = module.value("opt_level", "OPT_NONE");
+
+    if (opt_level == "OPT_NONE") {
+      return "";
+    }
+
     std::ostringstream oss;
 
     oss << "struct " << name << "_cfg {\n";
@@ -50,8 +56,13 @@ public:
       auto hls_cfg = module["hls_cfg"];
 
       for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        oss << "  static constexpr int " << it.key() << " = " << it.value()
-            << ";\n";
+        if (it.value().is_boolean()) {
+          oss << "  static constexpr bool " << it.key() << " = "
+              << (it.value().get<bool>() ? "true" : "false") << ";\n";
+        } else if (it.value().is_number_integer()) {
+          oss << "  static constexpr int " << it.key() << " = "
+              << it.value().get<int>() << ";\n";
+        }
       }
     }
 
@@ -67,11 +78,15 @@ public:
 
     std::string opt_level = module.value("opt_level", "OPT_NONE");
 
+    std::string config_type =
+        (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
+
     oss << "using " << name << "_t = vhn::Linear<" << dtype << ", " << name
-        << "_hparams, " << name << "_cfg, " << opt_level << ">;\n";
+        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
 
     return oss.str();
   }
 };
+
 } // namespace vhn
 #endif
