@@ -8,5 +8,8 @@
 #include "./softmax.hh"
 
 // Builders
+#ifndef __VITIS_HLS__
 #include "./linear_builder.hh"
+
 REGISTER_LAYER_BUILDER("linear", LinearBuilder)
+#endif

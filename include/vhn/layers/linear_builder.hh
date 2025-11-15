@@ -17,13 +17,25 @@ public:
     }
 
     auto hparams = module["hparams"];
-    int in_features = hparams.value("in_features", 0);
-    int out_features = hparams.value("out_features", 0);
 
-    oss << "struct " << name << "_hparams {\n";
-    oss << "  static constexpr int in_features = " << in_features << ";\n";
-    oss << "  static constexpr int out_features = " << out_features << ";\n";
-    oss << "};\n\n";
+    if (!hparams.contains("in_features") ||
+        !hparams["in_features"].is_number_unsigned()) {
+      throw std::runtime_error("Linear module '" + name +
+                               "' missing in_features param");
+    }
+
+    if (!hparams.contains("out_features") ||
+        !hparams["out_features"].is_number_unsigned()) {
+      throw std::runtime_error("Linear module '" + name +
+                               "' missing out_features param");
+    }
+
+    auto in_features = hparams["in_features"];
+    auto out_features = hparams["out_features"];
+
+    oss << "using " << name << "_hparams = vhn::LinearHParams<";
+    oss << in_features << ", " << out_features;
+    oss << ">;\n\n";
 
     return oss.str();
   }
