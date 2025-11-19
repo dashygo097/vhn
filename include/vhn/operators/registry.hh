@@ -11,8 +11,7 @@
 #endif
 
 #define ELEMENTWISE_REGISTRY(ELEMENTWISE_NAME)                                 \
-  template <typename DType, int N, typename Config = void,                     \
-            OptLevel OPT_LEVEL = OPT_NONE>                                     \
+  template <typename DType, int N, typename Config, OptLevel OPT_LEVEL>        \
   using ELEMENTWISE_NAME =                                                     \
       Elementwise<DType,                                                       \
                   ElementwiseHParams<ELEMENTWISE_NAME##Impl<DType, N>, N>,     \

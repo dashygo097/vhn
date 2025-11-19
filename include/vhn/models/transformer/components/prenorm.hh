@@ -9,64 +9,53 @@
 #endif
 
 namespace vhn {
-template <typename ADD_CONFIG = void, typename NORM_CONFIG = void>
-struct PreNormConfig {
-  using add = ADD_CONFIG;
-  using norm = NORM_CONFIG;
-};
-
-template <typename PreNormConfig> struct PreNorm_AddConfig {
-  using add = typename PreNormConfig::add;
-};
-
-template <typename PreNormConfig> struct PreNorm_LayerNormConfig {
-  using norm = typename PreNormConfig::norm;
-};
-
-template <typename DType, const int D_MODEL, typename Config = PreNormConfig<>,
-          OptLevel OPT_LEVEL = OPT_NONE>
+template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class PreNorm;
+
+template <int D_MODEl> struct PreNormHParams {
+  static constexpr int d_model = D_MODEl;
+};
 
 // ============================================================================
 // PreNorm specialization for OPT_NONE (using Add, LayerNorm)
 // ============================================================================
-template <typename DType, const int D_MODEL, typename Config>
-class PreNorm<DType, D_MODEL, Config, OPT_NONE> {
+template <typename DType, typename HParams, typename Config>
+class PreNorm<DType, HParams, Config, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int d_model = D_MODEL;
+  static constexpr int d_model = HParams::d_model;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using gamma_t = dtype[D_MODEL];
-  using beta_t = dtype[D_MODEL];
+  using gamma_t = dtype[d_model];
+  using beta_t = dtype[d_model];
 
   PreNorm() = default;
   ~PreNorm() = default;
 
-  using add = Add<DType, D_MODEL, void, OPT_NONE>;
-  using norm = LayerNorm<DType, D_MODEL, void, OPT_NONE>;
+  using add = Add<DType, d_model, void, OPT_NONE>;
+  using norm = LayerNorm<DType, d_model, void, OPT_NONE>;
 
-  static void forward(dtype output[D_MODEL], const dtype input[D_MODEL],
-                      const dtype residual[D_MODEL], const gamma_t gamma,
+  static void forward(dtype output[d_model], const dtype input[d_model],
+                      const dtype residual[d_model], const gamma_t gamma,
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype normed[D_MODEL];
+    dtype normed[d_model];
 
     norm::forward(normed, input, gamma, beta);
     add::forward(output, residual, normed);
   }
 
-  static void forward(dtype output[][D_MODEL], const dtype input[][D_MODEL],
-                      const dtype residual[][D_MODEL], const int actual_len,
+  static void forward(dtype output[][d_model], const dtype input[][d_model],
+                      const dtype residual[][d_model], const int actual_len,
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
 #endif
 
-    dtype normed[D_MODEL];
+    dtype normed[d_model];
   SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
@@ -84,15 +73,15 @@ public:
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
 #endif
-    dtype normed[D_MODEL];
+    dtype normed[d_model];
 
   SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      norm::forward(normed, input + i * D_MODEL, gamma, beta);
-      add::forward(output + i * D_MODEL, residual + i * D_MODEL, normed);
+      norm::forward(normed, input + i * d_model, gamma, beta);
+      add::forward(output + i * d_model, residual + i * d_model, normed);
     }
   }
 };
