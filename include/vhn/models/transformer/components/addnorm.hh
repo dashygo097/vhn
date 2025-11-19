@@ -13,8 +13,8 @@ namespace vhn {
 template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class AddNorm;
 
-template <int D_MODEL, NormType NORM_TYPE> struct AddNormHParams {
-  static constexpr int d_model = D_MODEL;
+template <typename NORM_HParams, NormType NORM_TYPE> struct AddNormHParams {
+  using norm_hparams = NORM_HParams;
   static constexpr NormType norm_type = NORM_TYPE;
 };
 
@@ -25,8 +25,8 @@ template <typename DType, typename HParams>
 class AddNorm<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int d_model = HParams::d_model;
-  static constexpr NormType norm_type = HParams::norm_typ;
+  static constexpr int d_model = HParams::norm_hparams::d_model;
+  static constexpr NormType norm_type = HParams::norm_type;
   static constexpr OptLevel opt_level = OPT_NONE;
 
   using gamma_t = dtype[d_model];
@@ -35,10 +35,11 @@ public:
   AddNorm() = default;
   ~AddNorm() = default;
 
-  using addnorm =
-      typename std::conditional<norm_type == POSTNORM,
-                                PostNorm<DType, d_model, void, OPT_NONE>,
-                                PreNorm<DType, d_model, void, OPT_NONE>>::type;
+  using norm_hparams = typename HParams::norm_hparams;
+
+  using addnorm = typename std::conditional<
+      norm_type == POSTNORM, PostNorm<DType, norm_hparams, void, OPT_NONE>,
+      PreNorm<DType, norm_hparams, void, OPT_NONE>>::type;
 
   static void forward(dtype output[d_model], const dtype input[d_model],
                       const dtype residual[d_model], const gamma_t gamma,
