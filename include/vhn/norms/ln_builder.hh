@@ -44,23 +44,29 @@ public:
 
     std::ostringstream oss;
 
-    oss << "struct " << name << "_cfg {\n";
+    int unroll_factor = 1;
+    int partition_factor = 1;
+    int pipeline_ii = 1;
 
     if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
       auto hls_cfg = module["hls_cfg"];
 
-      for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        if (it.value().is_boolean()) {
-          oss << "  static constexpr bool " << it.key() << " = "
-              << (it.value().get<bool>() ? "true" : "false") << ";\n";
-        } else if (it.value().is_number_integer()) {
-          oss << "  static constexpr int " << it.key() << " = "
-              << it.value().get<int>() << ";\n";
-        }
+      if (hls_cfg.contains("unroll_factor")) {
+        unroll_factor = hls_cfg["unroll_factor"].get<int>();
+      }
+
+      if (hls_cfg.contains("partition_factor")) {
+        partition_factor = hls_cfg["partition_factor"].get<int>();
+      }
+
+      if (hls_cfg.contains("pipeline_ii")) {
+        pipeline_ii = hls_cfg["pipeline_ii"].get<int>();
       }
     }
 
-    oss << "};\n\n";
+    oss << "using " << name << "_cfg = vhn::LayerNormConfig<";
+    oss << unroll_factor << ", " << partition_factor << ", " << pipeline_ii;
+    oss << ">;\n\n";
 
     return oss.str();
   }

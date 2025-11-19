@@ -55,6 +55,7 @@ public:
     for (int i = 0; i < seq_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       forward_1d_impl(output[i], input[i], gamma, beta, epsilon);
     }
@@ -71,6 +72,7 @@ public:
     for (int i = 0; i < seq_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
                       beta, epsilon);
@@ -97,6 +99,10 @@ private:
     dtype mean = dtype(0);
   CALC_MEAN:
     for (int j = 0; j < hidden_dim; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = mean op = add impl = dsp
+#endif
       mean += input[j];
     }
     mean /= dtype(hidden_dim);
@@ -104,6 +110,10 @@ private:
     dtype variance = dtype(0);
   CALC_VARIANCE:
     for (int j = 0; j < hidden_dim; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = variance op = add impl = dsp
+#endif
       dtype diff = input[j] - mean;
       variance += diff * diff;
     }
@@ -117,6 +127,10 @@ private:
 
   NORMALIZE:
     for (int j = 0; j < hidden_dim; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = output op = mul impl = dsp
+#endif
       output[j] = gamma[j] * (input[j] - mean) * inv_std + beta[j];
     }
   }
@@ -126,16 +140,20 @@ private:
                                      hls::stream<dtype> &input_stream,
                                      const Gamma_t gamma, const Beta_t beta,
                                      const float epsilon) {
+#pragma HLS INLINE off
     dtype input_buffer[hidden_dim];
 
   READ_INPUT:
     for (int j = 0; j < hidden_dim; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
       input_buffer[j] = input_stream.read();
     }
 
     dtype mean = dtype(0);
   CALC_MEAN_STREAM:
     for (int j = 0; j < hidden_dim; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = mean op = add impl = dsp
       mean += input_buffer[j];
     }
     mean /= dtype(hidden_dim);
@@ -143,6 +161,8 @@ private:
     dtype variance = dtype(0);
   CALC_VARIANCE_STREAM:
     for (int j = 0; j < hidden_dim; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = variance op = add impl = dsp
       dtype diff = input_buffer[j] - mean;
       variance += diff * diff;
     }
@@ -152,12 +172,21 @@ private:
 
   NORMALIZE_WRITE:
     for (int j = 0; j < hidden_dim; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = inv_std op = mul impl = dsp
       dtype output_val =
           gamma[j] * (input_buffer[j] - mean) * inv_std + beta[j];
       output_stream.write(output_val);
     }
   }
 #endif
+};
+
+template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II>
+struct LayerNormConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int pipeline_ii = PIPELINE_II;
 };
 
 // ============================================================================
@@ -217,6 +246,8 @@ public:
     for (int i = 0; i < seq_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#pragma HLS PIPELINE II = 1
 #endif
       forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
                       beta, epsilon);
@@ -239,18 +270,34 @@ private:
                               const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
-#pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
-#pragma HLS ARRAY_PARTITION variable = gamma cyclic factor = partition_factor
-#pragma HLS ARRAY_PARTITION variable = beta cyclic factor = partition_factor
+
+    constexpr bool should_partition =
+        (partition_factor > 1) && (hidden_dim <= 4096);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = input type = cyclic factor =            \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = output type = cyclic factor =           \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
+    partition_factor
+    } else {
+#pragma HLS BIND_STORAGE variable = input type = ram_1p impl = bram
+#pragma HLS BIND_STORAGE variable = output type = ram_1p impl = bram
+#pragma HLS BIND_STORAGE variable = gamma type = rom_1p impl = bram
+#pragma HLS BIND_STORAGE variable = beta type = rom_1p impl = bram
+    }
 #endif
 
     dtype mean = dtype(0);
   CALC_MEAN:
     for (int i = 0; i < hidden_dim; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = mean op = add impl = dsp
 #endif
       mean += input[i];
     }
@@ -260,8 +307,10 @@ private:
   CALC_VARIANCE:
     for (int i = 0; i < hidden_dim; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = variance op = add impl = dsp
 #endif
       dtype diff = input[i] - mean;
       variance += diff * diff;
@@ -277,8 +326,10 @@ private:
   NORMALIZE:
     for (int i = 0; i < hidden_dim; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS UNROLL factor = unroll_factor
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = output op = mul impl = dsp
 #endif
       output[i] = gamma[i] * (input[i] - mean) * inv_std + beta[i];
     }
@@ -289,13 +340,27 @@ private:
                                      hls::stream<dtype> &input_stream,
                                      const Gamma_t gamma, const Beta_t beta,
                                      const float epsilon) {
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+
     dtype input_buffer[hidden_dim];
+
+    constexpr bool should_partition =
+        (partition_factor > 1) && (hidden_dim <= 4096);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = input_buffer type = cyclic factor =     \
+    partition_factor
+    } else {
+#pragma HLS BIND_STORAGE variable = input_buffer type = ram_1p impl = bram
+    }
+
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 
   READ_INPUT:
     for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
       input_buffer[j] = input_stream.read();
     }
 
@@ -303,6 +368,7 @@ private:
   CALC_MEAN_STREAM:
     for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS BIND_OP variable = mean op = add impl = dsp
       mean += input_buffer[j];
     }
     mean /= dtype(hidden_dim);
@@ -311,6 +377,7 @@ private:
   CALC_VARIANCE_STREAM:
     for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS BIND_OP variable = variance op = add impl = dsp
       dtype diff = input_buffer[j] - mean;
       variance += diff * diff;
     }
@@ -322,6 +389,8 @@ private:
     for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = inv_std op = mul impl = dsp
       dtype output_val =
           gamma[j] * (input_buffer[j] - mean) * inv_std + beta[j];
       output_stream.write(output_val);

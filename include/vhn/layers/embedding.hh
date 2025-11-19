@@ -51,6 +51,7 @@ public:
     for (int i = 0; i < batch_size; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_single(output[i], input[i], weight);
     }
@@ -75,21 +76,33 @@ public:
 private:
   static void forward_single(dtype output[embed_size], const int input,
                              const Weight_t weight) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
   OUT_LOOP:
     for (int i = 0; i < embed_size; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 1024
+#endif
       output[i] = weight[input][i];
     }
   }
 
   static void forward_impl_1d(dtype *output, const int *input, const int length,
                               const Weight_t weight) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#endif
   LENGTH_LOOP:
     for (int i = 0; i < length; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 1024
+#endif
         output[i * embed_size + j] = weight[input[i]][j];
       }
     }
@@ -99,16 +112,26 @@ private:
   static void forward_1d_stream_impl(hls::stream<dtype> &output,
                                      hls::stream<int> &input, const int length,
                                      const Weight_t weight) {
+#pragma HLS INLINE off
   LENGTH_LOOP:
     for (int i = 0; i < length; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
       int idx = input.read();
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 1024
         output.write(weight[idx][j]);
       }
     }
   }
 #endif
+};
+
+template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II>
+struct EmbeddingConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int pipeline_ii = PIPELINE_II;
 };
 
 // ============================================================================
@@ -149,6 +172,8 @@ public:
     for (int i = 0; i < batch_size; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
+#pragma HLS PIPELINE II = 1
 #endif
       forward_single(output[i], input[i], weight);
     }
@@ -174,9 +199,18 @@ private:
   static void forward_single(dtype output[embed_size], const int input,
                              const Weight_t weight) {
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+#pragma HLS INLINE off
+    constexpr bool should_partition =
+        (partition_factor > 1) && (embed_size <= 2048);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = output type = cyclic factor =           \
+    partition_factor
+#pragma HLS ARRAY_PARTITION variable = weight type = cyclic factor =           \
     partition_factor dim = 2
+    } else {
+#pragma HLS BIND_STORAGE variable = weight type = rom_2p impl = bram
+#pragma HLS BIND_STORAGE variable = output type = ram_1p impl = bram
+    }
 #endif
 
   OUT_LOOP:
@@ -184,6 +218,8 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
+#pragma HLS BIND_OP variable = output op = assign impl = lut
 #endif
       output[i] = weight[input][i];
     }
@@ -192,21 +228,33 @@ private:
   static void forward_impl_1d(dtype *output, const int *input, const int length,
                               const Weight_t weight) {
 #ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+#pragma HLS INLINE off
+    constexpr bool should_partition =
+        (partition_factor > 1) && (embed_size <= 2048);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = weight type = cyclic factor =           \
     partition_factor dim = 2
+    } else {
+#pragma HLS BIND_STORAGE variable = weight type = rom_2p impl = bram
+    }
 #endif
 
   LENGTH_LOOP:
     for (int i = 0; i < length; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       int idx = input[i];
+#ifdef __VITIS_HLS__
+#pragma HLS BIND_OP variable = idx op = assign impl = lut
+#endif
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
+#pragma HLS BIND_OP variable = output op = assign impl = lut
 #endif
         output[i * embed_size + j] = weight[idx][j];
       }
@@ -217,18 +265,29 @@ private:
   static void forward_1d_stream_impl(hls::stream<dtype> &output,
                                      hls::stream<int> &input, const int length,
                                      const Weight_t weight) {
-#pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+
+    constexpr bool should_partition =
+        (partition_factor > 1) && (embed_size <= 2048);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = weight type = cyclic factor =           \
     partition_factor dim = 2
+    } else {
+#pragma HLS BIND_STORAGE variable = weight type = rom_2p impl = bram
+    }
 
   LENGTH_LOOP:
     for (int i = 0; i < length; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
       int idx = input.read();
+#pragma HLS BIND_OP variable = idx op = assign impl = lut
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
-#ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
-#endif
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
+#pragma HLS BIND_OP variable = output op = write impl = lut
         output.write(weight[idx][j]);
       }
     }

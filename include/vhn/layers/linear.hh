@@ -74,6 +74,16 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,)
+                      hls::stream<dtype> &input_stream,
+                      const Weight_t weight, const Bias_t bias) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+  }
+
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
@@ -98,6 +108,38 @@ private:
       output[i] = acc + bias[i];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias) {
+#pragma HLS INLINE off
+    dtype input[in_features];
+  READ_LOOP:
+    for (int i = 0; i < in_features; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+      input[i] = input_stream.read();
+    }
+  }
+
+  OUTER_LOOP : for (int i = 0; i < out_features; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+    dtype acc = dtype(0);
+  INNER_LOOP:
+    for (int j = 0; j < in_features; j++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+      acc += input[j] * weight[i][j];
+    }
+
+    output_stream.write(acc + bias[i]);
+  }
+}
+#endif
+}; // namespace vhn
+
+template <int UNROLL_FACTOR, int PARTITION_FACTOR> struct LinearConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
 };
 
 // ============================================================================
@@ -161,6 +203,15 @@ public:
     }
   }
 
+#ifdef __VITIS_HLS__
+  static void forward(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const Weight_t weight,
+                      const Bias_t bias) {
+#pragma HLS INLINE off
+    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+  }
+#endif
+
 private:
   static void forward_1d_impl(dtype *output, const dtype *input,
                               const Weight_t weight, const Bias_t bias) {
@@ -210,6 +261,44 @@ private:
       output[i] = acc + bias[i];
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                     hls::stream<dtype> &input_stream,
+                                     const Weight_t weight, const Bias_t bias) {
+#pragma HLS INLINE off
+    dtype input[in_features];
+
+  READ_LOOP:
+    for (int i = 0; i < in_features; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+      input[i] = input_stream.read();
+    }
+
+  OUTER_LOOP:
+    for (int i = 0; i < out_features; i++) {
+#pragma HLS PIPELINE style = flp
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+
+      dtype acc = dtype(0);
+#pragma HLS BIND_OP variable = acc op = add impl = dsp
+
+    INNER_LOOP:
+      for (int j = 0; j < in_features; j++) {
+        constexpr bool should_unroll =
+            (unroll_factor > 1) && (in_features <= 512);
+        if constexpr (should_unroll) {
+#pragma HLS UNROLL factor = unroll_factor
+        }
+#pramgma HLS BIND_OP variable = acc op = mul impl = dsp
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+        acc += input[j] * weight[i][j];
+      }
+      output_stream.write(acc + bias[i]);
+    }
+  }
+
+#endif
 };
 
 } // namespace vhn

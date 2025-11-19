@@ -47,6 +47,7 @@ public:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(output[b], input[b]);
     }
@@ -61,6 +62,7 @@ public:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
       forward_1d_impl(&output[b * n], &input[b * n]);
     }
@@ -84,6 +86,9 @@ private:
     dtype max_val = input[0];
   FIND_MAX:
     for (int i = 1; i < n; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#endif
       max_val = (input[i] > max_val) ? input[i] : max_val;
     }
 
@@ -99,7 +104,6 @@ private:
       sum += exp_val[i];
     }
 
-    // Normalize by sum
     dtype inv_sum = dtype(1.0) / sum;
   NORMALIZE:
     for (int i = 0; i < n; i++) {
@@ -125,7 +129,6 @@ private:
 
     dtype sum = dtype(0.0f);
     dtype exp_val[n];
-#pragma HLS ARRAY_PARTITION variable = exp_val complete
 
   CALC_EXP:
     for (int i = 0; i < n; i++) {
@@ -140,6 +143,13 @@ private:
     }
   }
 #endif
+};
+
+template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II>
+struct SoftmaxConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int pipeline_ii = PIPELINE_II;
 };
 
 // ============================================================================
@@ -176,6 +186,8 @@ public:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
+#pragma HLS PIPELINE II = 1
 #endif
       forward_1d_impl(output[b], input[b]);
     }
@@ -190,6 +202,8 @@ public:
     for (int b = 0; b < batch_size; b++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
+#pragma HLS PIPELINE II = 1
 #endif
       forward_1d_impl(&output[b * n], &input[b * n]);
     }
@@ -216,17 +230,27 @@ private:
   FIND_MAX:
     for (int i = 1; i < n; i++) {
 #ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = partition_factor
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
 #endif
       max_val = (input[i] > max_val) ? input[i] : max_val;
     }
 
     dtype sum = dtype(0.0f);
     dtype exp_val[n];
+
+#ifdef __VITIS_HLS__
+#pragma HLS ARRAY_PARTITION variable = exp_val cyclic factor = partition_factor
+#endif
+
   CALC_EXP:
     for (int i = 0; i < n; i++) {
 #ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = sum op = add impl = dsp
 #endif
 #ifdef __VITIS_HLS__
       exp_val[i] = hls::exp(input[i] - max_val);
@@ -240,7 +264,10 @@ private:
   NORMALIZE:
     for (int i = 0; i < n; i++) {
 #ifdef __VITIS_HLS__
+#pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = output op = mul impl = dsp
 #endif
       output[i] = exp_val[i] * inv_sum;
     }
@@ -256,6 +283,7 @@ private:
   READ_INPUT:
     for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
       input_buffer[i] = input_stream.read();
     }
 
@@ -272,7 +300,10 @@ private:
 
   CALC_EXP:
     for (int i = 0; i < n; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = sum op = add impl = dsp
       exp_val[i] = hls::exp(input_buffer[i] - max_val);
       sum += exp_val[i];
     }
@@ -280,6 +311,10 @@ private:
     dtype inv_sum = dtype(1.0) / sum;
   NORMALIZE_WRITE:
     for (int i = 0; i < n; i++) {
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS UNROLL factor = unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
+#pragma HLS BIND_OP variable = inv_sum op = mul impl = dsp
 #pragma HLS PIPELINE II = pipeline_ii
       output_stream.write(exp_val[i] * inv_sum);
     }
