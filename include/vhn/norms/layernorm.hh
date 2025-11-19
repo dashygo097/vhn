@@ -10,27 +10,31 @@
 
 namespace vhn {
 
-template <typename DType, const int HIDDEN_DIM, typename Config = void,
+template <typename DType, typename HParams, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
 class LayerNorm;
+
+template <int HIDDEN_DIM> struct LayerNormHParams {
+  static constexpr int hidden_dim = HIDDEN_DIM;
+};
 
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
-template <typename DType, const int HIDDEN_DIM>
-class LayerNorm<DType, HIDDEN_DIM, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class LayerNorm<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int hidden_dim = HIDDEN_DIM;
+  static constexpr int hidden_dim = HParams::hidden_dim;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using Gamma_t = dtype[HIDDEN_DIM];
-  using Beta_t = dtype[HIDDEN_DIM];
+  using Gamma_t = dtype[hidden_dim];
+  using Beta_t = dtype[hidden_dim];
 
   LayerNorm() = default;
   ~LayerNorm() = default;
 
-  static void forward(dtype output[HIDDEN_DIM], const dtype input[HIDDEN_DIM],
+  static void forward(dtype output[hidden_dim], const dtype input[hidden_dim],
                       const Gamma_t gamma, const Beta_t beta,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
@@ -39,8 +43,8 @@ public:
     forward_1d_impl(output, input, gamma, beta, epsilon);
   }
 
-  static void forward(dtype output[][HIDDEN_DIM],
-                      const dtype input[][HIDDEN_DIM], const int seq_len,
+  static void forward(dtype output[][hidden_dim],
+                      const dtype input[][hidden_dim], const int seq_len,
                       const Gamma_t gamma, const Beta_t beta,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
@@ -68,7 +72,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[i * HIDDEN_DIM], &input[i * HIDDEN_DIM], gamma,
+      forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
                       beta, epsilon);
     }
   }
@@ -122,32 +126,32 @@ private:
                                      hls::stream<dtype> &input_stream,
                                      const Gamma_t gamma, const Beta_t beta,
                                      const float epsilon) {
-    dtype input_buffer[HIDDEN_DIM];
+    dtype input_buffer[hidden_dim];
 
   READ_INPUT:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
       input_buffer[j] = input_stream.read();
     }
 
     dtype mean = dtype(0);
   CALC_MEAN_STREAM:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
       mean += input_buffer[j];
     }
-    mean /= dtype(HIDDEN_DIM);
+    mean /= dtype(hidden_dim);
 
     dtype variance = dtype(0);
   CALC_VARIANCE_STREAM:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
       dtype diff = input_buffer[j] - mean;
       variance += diff * diff;
     }
-    variance /= dtype(HIDDEN_DIM);
+    variance /= dtype(hidden_dim);
 
     dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
 
   NORMALIZE_WRITE:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
       dtype output_val =
           gamma[j] * (input_buffer[j] - mean) * inv_std + beta[j];
       output_stream.write(output_val);
@@ -159,24 +163,24 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
-template <typename DType, const int HIDDEN_DIM, typename Config>
-class LayerNorm<DType, HIDDEN_DIM, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class LayerNorm<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  static constexpr int hidden_dim = HIDDEN_DIM;
+  static constexpr int hidden_dim = hidden_dim;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
   static constexpr int pipeline_ii = Config::pipeline_ii;
 
-  using Gamma_t = dtype[HIDDEN_DIM];
-  using Beta_t = dtype[HIDDEN_DIM];
+  using Gamma_t = dtype[hidden_dim];
+  using Beta_t = dtype[hidden_dim];
 
   LayerNorm() = default;
   ~LayerNorm() = default;
 
-  static void forward(dtype output[HIDDEN_DIM], const dtype input[HIDDEN_DIM],
+  static void forward(dtype output[hidden_dim], const dtype input[hidden_dim],
                       const Gamma_t gamma, const Beta_t beta,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
@@ -185,8 +189,8 @@ public:
     forward_1d_impl(output, input, gamma, beta, epsilon);
   }
 
-  static void forward(dtype output[][HIDDEN_DIM],
-                      const dtype input[][HIDDEN_DIM], const int seq_len,
+  static void forward(dtype output[][hidden_dim],
+                      const dtype input[][hidden_dim], const int seq_len,
                       const Gamma_t gamma, const Beta_t beta,
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
@@ -214,7 +218,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[i * HIDDEN_DIM], &input[i * HIDDEN_DIM], gamma,
+      forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
                       beta, epsilon);
     }
   }
@@ -285,37 +289,37 @@ private:
                                      hls::stream<dtype> &input_stream,
                                      const Gamma_t gamma, const Beta_t beta,
                                      const float epsilon) {
-    dtype input_buffer[HIDDEN_DIM];
+    dtype input_buffer[hidden_dim];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 
   READ_INPUT:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer[j] = input_stream.read();
     }
 
     dtype mean = dtype(0);
   CALC_MEAN_STREAM:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS UNROLL factor = unroll_factor
       mean += input_buffer[j];
     }
-    mean /= dtype(HIDDEN_DIM);
+    mean /= dtype(hidden_dim);
 
     dtype variance = dtype(0);
   CALC_VARIANCE_STREAM:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS UNROLL factor = unroll_factor
       dtype diff = input_buffer[j] - mean;
       variance += diff * diff;
     }
-    variance /= dtype(HIDDEN_DIM);
+    variance /= dtype(hidden_dim);
 
     dtype inv_std = hls::rsqrt(variance + dtype(epsilon));
 
   NORMALIZE_WRITE:
-    for (int j = 0; j < HIDDEN_DIM; j++) {
+    for (int j = 0; j < hidden_dim; j++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
       dtype output_val =
