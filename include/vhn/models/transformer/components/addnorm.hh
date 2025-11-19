@@ -15,6 +15,8 @@ class AddNorm;
 
 template <typename NORM_HParams, NormType NORM_TYPE> struct AddNormHParams {
   using norm_hparams = NORM_HParams;
+
+  static constexpr int d_model = NORM_HParams::d_model;
   static constexpr NormType norm_type = NORM_TYPE;
 };
 
@@ -25,7 +27,7 @@ template <typename DType, typename HParams>
 class AddNorm<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int d_model = HParams::norm_hparams::d_model;
+  static constexpr int d_model = HParams::d_model;
   static constexpr NormType norm_type = HParams::norm_type;
   static constexpr OptLevel opt_level = OPT_NONE;
 

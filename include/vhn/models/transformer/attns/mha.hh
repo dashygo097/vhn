@@ -15,9 +15,16 @@ template <typename DType, typename HParams, typename Config,
           OptLevel OPT_LEVEL = OPT_NONE>
 class MulHeadAttn;
 
-template <int D_MODEL, int NUM_HEADS, int MAX_SEQ_LEN> struct MHAHParams {
-  static constexpr int d_model = D_MODEL;
-  static constexpr int num_heads = NUM_HEADS;
+template <typename WQKV_HParams, typename SOFTMAX_HParams, typename WO_HParams,
+          int MAX_SEQ_LEN>
+struct MulHeadAttnHParams {
+  using wqkv_hparams = WQKV_HParams;
+  using softmax_hparams = SOFTMAX_HParams;
+  using wo_hparams = WO_HParams;
+
+  static constexpr int d_model = WQKV_HParams::input_dim;
+  static constexpr int num_heads = WQKV_HParams::output_dim / d_model;
+  static constexpr int head_dim = d_model / num_heads;
   static constexpr int max_seq_len = MAX_SEQ_LEN;
 };
 
@@ -30,7 +37,7 @@ public:
   using dtype = DType;
   static constexpr int d_model = HParams::d_model;
   static constexpr int num_heads = HParams::num_heads;
-  static constexpr int head_dim = d_model / num_heads;
+  static constexpr int head_dim = HParams::head_dim;
   static constexpr int max_seq_len = HParams::max_seq_len;
   static constexpr OptLevel opt_level = OPT_NONE;
 
@@ -42,10 +49,13 @@ public:
   MulHeadAttn() = default;
   ~MulHeadAttn() = default;
 
-  using wqkv =
-      Linear<dtype, LinearHParams<d_model, d_model * 3>, void, OPT_NONE>;
-  using wo = Linear<dtype, LinearHParams<d_model, d_model>, void, OPT_NONE>;
-  using softmax = Softmax<dtype, max_seq_len, void, OPT_NONE>;
+  using wqkv_hparams = typename HParams::wqkv_hparams;
+  using softmax_hparams = typename HParams::softmax_hparams;
+  using wo_hparams = typename HParams::wo_hparams;
+
+  using wqkv = Linear<dtype, wqkv_hparams, void, OPT_NONE>;
+  using softmax = Softmax<dtype, softmax_hparams, void, OPT_NONE>;
+  using wo = Linear<dtype, wo_hparams, void, OPT_NONE>;
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
                       const int actual_len, const Wqkv_t wqkv,

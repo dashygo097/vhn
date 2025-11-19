@@ -103,14 +103,12 @@ public:
         {"hparams", {{"in_features", d_ff}, {"out_features", d_model}}},
         {"opt_level", opt_level}};
 
-    // Copy HLS config to submodules if present
     if (module.contains("hls_cfg")) {
       fc1_module["hls_cfg"] = module["hls_cfg"];
       act_module["hls_cfg"] = module["hls_cfg"];
       fc2_module["hls_cfg"] = module["hls_cfg"];
     }
 
-    // Use submodule builders to generate configs
     LinearBuilder linear_builder;
     ElementwiseBuilder elementwise_builder;
 
@@ -118,7 +116,6 @@ public:
     oss << elementwise_builder.generate_config(name + "_act", act_module);
     oss << linear_builder.generate_config(name + "_fc2", fc2_module);
 
-    // Generate FFN config
     oss << "struct " << name << "_cfg {\n";
 
     if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
@@ -156,7 +153,6 @@ public:
     auto d_ff = hparams["d_ff"].get<int>();
     auto act = hparams["act"].get<std::string>();
 
-    // Create submodule JSON configurations
     json fc1_module = {
         {"hparams", {{"in_features", d_model}, {"out_features", d_ff}}},
         {"opt_level", opt_level}};
@@ -174,7 +170,6 @@ public:
       fc2_module["hls_cfg"] = module["hls_cfg"];
     }
 
-    // Use submodule builders to generate type aliases
     LinearBuilder linear_builder;
     ElementwiseBuilder elementwise_builder;
 
@@ -183,7 +178,6 @@ public:
                                                    act_module);
     oss << linear_builder.generate_type_alias(name + "_fc2", dtype, fc2_module);
 
-    // Generate FFN type alias
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 

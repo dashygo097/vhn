@@ -9,30 +9,35 @@
 
 namespace vhn {
 
-template <typename DType, int N, typename Config = void,
+template <typename DType, typename HParams, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
 class Softmax;
+
+template <int N> struct SoftmaxHParams {
+  static constexpr int n = N;
+};
 
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
-template <typename DType, int N> class Softmax<DType, N, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class Softmax<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int n = N;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_NONE;
 
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[N], const dtype input[N]) {
+  static void forward(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[][N], const dtype input[][N],
+  static void forward(dtype output[][n], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -57,7 +62,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input[b * N]);
+      forward_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
@@ -105,32 +110,32 @@ private:
 #ifdef __VITIS_HLS__
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       input_buffer[i] = input_stream.read();
     }
 
     dtype max_val = input_buffer[0];
   FIND_MAX:
-    for (int i = 1; i < N; i++) {
+    for (int i = 1; i < n; i++) {
       max_val = (input_buffer[i] > max_val) ? input_buffer[i] : max_val;
     }
 
     dtype sum = dtype(0.0f);
-    dtype exp_val[N];
+    dtype exp_val[n];
 #pragma HLS ARRAY_PARTITION variable = exp_val complete
 
   CALC_EXP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       exp_val[i] = hls::exp(input_buffer[i] - max_val);
       sum += exp_val[i];
     }
 
     dtype inv_sum = dtype(1.0) / sum;
   NORMALIZE_WRITE:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       output_stream.write(exp_val[i] * inv_sum);
     }
   }
@@ -140,11 +145,11 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
-template <typename DType, int N, typename Config>
-class Softmax<DType, N, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class Softmax<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  static constexpr int n = N;
+  static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int unroll_factor = Config::unroll_factor;
@@ -154,14 +159,14 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[N], const dtype input[N]) {
+  static void forward(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     forward_1d_impl(output, input);
   }
 
-  static void forward(dtype output[][N], const dtype input[][N],
+  static void forward(dtype output[][n], const dtype input[][n],
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -186,7 +191,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * N], &input[b * N]);
+      forward_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
@@ -249,24 +254,24 @@ private:
     partition_factor
 
   READ_INPUT:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer[i] = input_stream.read();
     }
 
     dtype max_val = input_buffer[0];
   FIND_MAX:
-    for (int i = 1; i < N; i++) {
+    for (int i = 1; i < n; i++) {
 #pragma HLS UNROLL factor = unroll_factor
       max_val = (input_buffer[i] > max_val) ? input_buffer[i] : max_val;
     }
 
     dtype sum = dtype(0.0f);
-    dtype exp_val[N];
+    dtype exp_val[n];
 #pragma HLS ARRAY_PARTITION variable = exp_val cyclic factor = partition_factor
 
   CALC_EXP:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS UNROLL factor = unroll_factor
       exp_val[i] = hls::exp(input_buffer[i] - max_val);
       sum += exp_val[i];
@@ -274,7 +279,7 @@ private:
 
     dtype inv_sum = dtype(1.0) / sum;
   NORMALIZE_WRITE:
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
 #pragma HLS PIPELINE II = pipeline_ii
       output_stream.write(exp_val[i] * inv_sum);
     }

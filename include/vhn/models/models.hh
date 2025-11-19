@@ -15,7 +15,13 @@
 
 // Builders
 #ifndef __VITIS_HLS__
+#include "./transformer/attns/mha_builder.hh"
+#include "./transformer/components/addnorm_builder.hh"
 #include "./transformer/components/ffn_builder.hh"
+#include "./transformer/encoder_builder.hh"
 
 REGISTER_LAYER_BUILDER("ffn", FFNBuilder)
+REGISTER_LAYER_BUILDER("addnorm", AddNormBuilder)
+REGISTER_LAYER_BUILDER("mha", MulHeadAttnBuilder)
+REGISTER_LAYER_BUILDER("enc_blk", EncoderBlockBuilder)
 #endif

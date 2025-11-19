@@ -21,6 +21,7 @@ struct FFNHParams {
 
   static constexpr int d_model = FC1_HParams::in_features;
   static constexpr int d_ff = FC1_HParams::out_features;
+  using act_type = typename ACT_HParams::impl;
 };
 
 // ============================================================================

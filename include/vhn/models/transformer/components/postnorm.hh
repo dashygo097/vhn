@@ -12,8 +12,10 @@ namespace vhn {
 template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class PostNorm;
 
-template <int D_MODEL> struct PostNormHParams {
-  static constexpr int d_model = D_MODEL;
+template <typename NORM_HParams> struct PostNormHParams {
+  using ln_hparams = NORM_HParams;
+
+  static constexpr int d_model = ln_hparams::hidden_dim;
 };
 
 // ============================================================================
@@ -32,8 +34,10 @@ public:
   PostNorm() = default;
   ~PostNorm() = default;
 
+  using norm_hparams = typename HParams::ln_hparams;
+
   using add = Add<DType, d_model, void, OPT_NONE>;
-  using norm = LayerNorm<DType, d_model, void, OPT_NONE>;
+  using norm = LayerNorm<DType, norm_hparams, void, OPT_NONE>;
 
   static void forward(dtype output[d_model], const dtype input[d_model],
                       const dtype residual[d_model], const gamma_t gamma,
