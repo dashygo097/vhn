@@ -2,7 +2,7 @@
 
 #ifndef __VITIS_HLS__
 #include "../../../builder/builder.hh"
-#include "../../../norms/layernorm_builder.hh"
+#include "../../../norms/ln_builder.hh"
 #include <sstream>
 
 namespace vhn {
