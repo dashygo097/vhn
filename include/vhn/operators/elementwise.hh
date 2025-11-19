@@ -251,6 +251,13 @@ private:
 #endif
 };
 
+template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II>
+struct ElementwiseConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int pipeline_ii = PIPELINE_II;
+};
+
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================

@@ -10,15 +10,8 @@ class BatchNorm2dBuilder : public BaseBuilder {
 public:
   std::string generate_hparams(const std::string &name,
                                const std::string &dtype,
-                               const json &module) const override {
+                               const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("BatchNorm2d module '" + name +
-                               "' missing hparams");
-    }
-
-    auto hparams = module["hparams"];
 
     if (!hparams.contains("channels")) {
       throw std::runtime_error("BatchNorm2d module '" + name +
@@ -47,10 +40,8 @@ public:
   }
 
   std::string generate_config(const std::string &name,
-                              const json &module) const override {
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
-
-    if (opt_level == "OPT_NONE") {
+                              const json &hls_cfg) const override {
+    if (hls_cfg.empty() || hls_cfg.is_null()) {
       return "";
     }
 
@@ -58,17 +49,13 @@ public:
 
     oss << "struct " << name << "_cfg {\n";
 
-    if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
-      auto hls_cfg = module["hls_cfg"];
-
-      for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        if (it.value().is_boolean()) {
-          oss << "  static constexpr bool " << it.key() << " = "
-              << (it.value().get<bool>() ? "true" : "false") << ";\n";
-        } else if (it.value().is_number_integer()) {
-          oss << "  static constexpr int " << it.key() << " = "
-              << it.value().get<int>() << ";\n";
-        }
+    for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
+      if (it.value().is_boolean()) {
+        oss << "  static constexpr bool " << it.key() << " = "
+            << (it.value().get<bool>() ? "true" : "false") << ";\n";
+      } else if (it.value().is_number_integer()) {
+        oss << "  static constexpr int " << it.key() << " = "
+            << it.value().get<int>() << ";\n";
       }
     }
 

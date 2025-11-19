@@ -12,15 +12,8 @@ class MulHeadAttnBuilder : public BaseBuilder {
 public:
   std::string generate_hparams(const std::string &name,
                                const std::string &dtype,
-                               const json &module) const override {
+                               const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing hparams");
-    }
-
-    auto hparams = module["hparams"];
 
     if (!hparams.contains("d_model")) {
       throw std::runtime_error("MulHeadAttn module '" + name +
@@ -42,31 +35,18 @@ public:
     auto max_seq_len = hparams["max_seq_len"].get<int>();
     auto head_dim = d_model / num_heads;
 
-    json wqkv_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", 3 * d_model}}},
-        {"opt_level", module.value("opt_level", "OPT_NONE")}};
-
-    json softmax_module = {
-        {"hparams", {{"n", max_seq_len}}},
-        {"opt_level", module.value("opt_level", "OPT_NONE")}};
-
-    json wo_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", d_model}}},
-        {"opt_level", module.value("opt_level", "OPT_NONE")}};
-
-    if (module.contains("hls_cfg")) {
-      wqkv_module["hls_cfg"] = module["hls_cfg"];
-      softmax_module["hls_cfg"] = module["hls_cfg"];
-      wo_module["hls_cfg"] = module["hls_cfg"];
-    }
+    json wqkv_hparams = {{"in_features", d_model},
+                         {"out_features", 3 * d_model}};
+    json softmax_hparams = {{"n", max_seq_len}};
+    json wo_hparams = {{"in_features", d_model}, {"out_features", d_model}};
 
     LinearBuilder linear_builder;
     SoftmaxBuilder softmax_builder;
 
-    oss << linear_builder.generate_hparams(name + "_wqkv", dtype, wqkv_module);
+    oss << linear_builder.generate_hparams(name + "_wqkv", dtype, wqkv_hparams);
     oss << softmax_builder.generate_hparams(name + "_softmax", dtype,
-                                            softmax_module);
-    oss << linear_builder.generate_hparams(name + "_wo", dtype, wo_module);
+                                            softmax_hparams);
+    oss << linear_builder.generate_hparams(name + "_wo", dtype, wo_hparams);
 
     oss << "using " << name << "_hparams = vhn::MulHeadAttnHParams<";
     oss << name << "_wqkv_hparams, ";
@@ -79,66 +59,12 @@ public:
   }
 
   std::string generate_config(const std::string &name,
-                              const json &module) const override {
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
-
-    if (opt_level == "OPT_NONE") {
+                              const json &hls_cfg) const override {
+    if (hls_cfg.empty() || hls_cfg.is_null()) {
       return "";
     }
 
     std::ostringstream oss;
-
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing hparams");
-    }
-
-    auto hparams = module["hparams"];
-    auto d_model = hparams["d_model"].get<int>();
-    auto num_heads = hparams["num_heads"].get<int>();
-    auto max_seq_len = hparams["max_seq_len"].get<int>();
-
-    json wqkv_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", 3 * d_model}}},
-        {"opt_level", opt_level}};
-
-    json softmax_module = {{"hparams", {{"n", max_seq_len}}},
-                           {"opt_level", opt_level}};
-
-    json wo_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", d_model}}},
-        {"opt_level", opt_level}};
-
-    if (module.contains("hls_cfg")) {
-      wqkv_module["hls_cfg"] = module["hls_cfg"];
-      softmax_module["hls_cfg"] = module["hls_cfg"];
-      wo_module["hls_cfg"] = module["hls_cfg"];
-    }
-
-    LinearBuilder linear_builder;
-    SoftmaxBuilder softmax_builder;
-
-    oss << linear_builder.generate_config(name + "_wqkv", wqkv_module);
-    oss << softmax_builder.generate_config(name + "_softmax", softmax_module);
-    oss << linear_builder.generate_config(name + "_wo", wo_module);
-
-    oss << "struct " << name << "_cfg {\n";
-
-    if (module.contains("hls_cfg") && !module["hls_cfg"].empty()) {
-      auto hls_cfg = module["hls_cfg"];
-
-      for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-        if (it.value().is_boolean()) {
-          oss << "  static constexpr bool " << it.key() << " = "
-              << (it.value().get<bool>() ? "true" : "false") << ";\n";
-        } else if (it.value().is_number_integer()) {
-          oss << "  static constexpr int " << it.key() << " = "
-              << it.value().get<int>() << ";\n";
-        }
-      }
-    }
-
-    oss << "};\n\n";
 
     return oss.str();
   }

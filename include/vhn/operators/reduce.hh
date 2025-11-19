@@ -130,6 +130,15 @@ private:
 #endif
 };
 
+template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II,
+          bool USE_REDUCE_TREE>
+struct ReduceConfig {
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int pipeline_ii = PIPELINE_II;
+  static constexpr bool use_reduce_tree = USE_REDUCE_TREE;
+};
+
 // ============================================================================
 // Optimized version (OPT_ENABLED) - Sequential or Tree based on Config
 // ============================================================================
@@ -144,7 +153,7 @@ public:
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
   static constexpr int pipeline_ii = Config::pipeline_ii;
-  static constexpr bool use_tree = Config::use_reduce_tree;
+  static constexpr bool use_reduce_tree = Config::use_reduce_tree;
 
   static constexpr int num_stages = log2_ceil(n);
   static constexpr int padded_n = next_power_of_2(n);
@@ -156,7 +165,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    if constexpr (use_tree) {
+    if constexpr (use_reduce_tree) {
       return forward_tree(input);
     } else {
       return forward_sequential(input);
@@ -317,7 +326,7 @@ private:
       input_buffer[i] = input_stream.read();
     }
 
-    if constexpr (use_tree) {
+    if constexpr (use_reduce_tree) {
       return forward_tree_internal(input_buffer);
     } else {
       dtype acc = dtype(0);

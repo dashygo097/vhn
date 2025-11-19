@@ -110,8 +110,10 @@ private:
     }
 
     out << "// Configuration for " << name << " (" << type << ")\n";
-    out << generator->generate_hparams(name, dtype, module);
-    out << generator->generate_config(name, module);
+    out << generator->generate_hparams(name, dtype,
+                                       module.value("hparams", json::object()));
+    out << generator->generate_config(name,
+                                      module.value("hls_cfg", json::object()));
     out << generator->generate_type_alias(name, dtype, module);
     out << "\n";
   }

@@ -15,10 +15,10 @@ public:
 
   virtual std::string generate_hparams(const std::string &name,
                                        const std::string &dtype,
-                                       const json &module) const = 0;
+                                       const json &hparams) const = 0;
 
   virtual std::string generate_config(const std::string &name,
-                                      const json &module) const = 0;
+                                      const json &hls_cfg) const = 0;
 
   virtual std::string generate_type_alias(const std::string &name,
                                           const std::string &dtype,
