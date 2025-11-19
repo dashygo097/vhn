@@ -30,6 +30,11 @@ public:
       throw std::runtime_error("FFN module '" + name + "' missing d_ff param");
     }
 
+    if (!hparams.contains("max_seq_len")) {
+      throw std::runtime_error("FFN module '" + name +
+                               "' missing max_seq_len param");
+    }
+
     if (!hparams.contains("act")) {
       throw std::runtime_error("FFN module '" + name + "' missing act param");
     }
@@ -37,6 +42,7 @@ public:
     auto d_model = hparams["d_model"].get<int>();
     auto d_ff = hparams["d_ff"].get<int>();
     auto act = hparams["act"].get<std::string>();
+    auto max_seq_len = hparams["max_seq_len"].get<int>();
 
     json fc1_module = {
         {"hparams", {{"in_features", d_model}, {"out_features", d_ff}}},
@@ -66,7 +72,8 @@ public:
     oss << "using " << name << "_hparams = vhn::FFNHParams<";
     oss << name << "_fc1_hparams, ";
     oss << name << "_act_hparams, ";
-    oss << name << "_fc2_hparams";
+    oss << name << "_fc2_hparams, ";
+    oss << max_seq_len;
     oss << ">;\n\n";
 
     return oss.str();
@@ -89,6 +96,7 @@ public:
     auto hparams = module["hparams"];
     auto d_model = hparams["d_model"].get<int>();
     auto d_ff = hparams["d_ff"].get<int>();
+    auto max_seq_len = hparams["max_seq_len"].get<int>();
     auto act = hparams["act"].get<std::string>();
 
     // Create submodule JSON configurations
@@ -151,6 +159,7 @@ public:
     auto hparams = module["hparams"];
     auto d_model = hparams["d_model"].get<int>();
     auto d_ff = hparams["d_ff"].get<int>();
+    auto max_seq_len = hparams["max_seq_len"].get<int>();
     auto act = hparams["act"].get<std::string>();
 
     json fc1_module = {

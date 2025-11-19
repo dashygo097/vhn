@@ -13,7 +13,8 @@ template <typename DType, typename HParams, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
 class FFN;
 
-template <typename FC1_HParams, typename ACT_HParams, typename FC2_HParams>
+template <typename FC1_HParams, typename ACT_HParams, typename FC2_HParams,
+          int MAX_SEQ_LEN>
 struct FFNHParams {
   using fc1_hparams = FC1_HParams;
   using act_hparams = ACT_HParams;
@@ -21,6 +22,7 @@ struct FFNHParams {
 
   static constexpr int d_model = FC1_HParams::in_features;
   static constexpr int d_ff = FC1_HParams::out_features;
+  static constexpr int max_seq_len = MAX_SEQ_LEN;
   using act_type = typename ACT_HParams::impl;
 };
 
@@ -33,6 +35,7 @@ public:
   using dtype = DType;
   static constexpr int d_model = HParams::d_model;
   static constexpr int d_ff = HParams::d_ff;
+  static constexpr int max_seq_len = HParams::max_seq_len;
   static constexpr OptLevel opt_level = OPT_NONE;
 
   using W1_t = dtype[d_ff][d_model];
@@ -57,8 +60,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    dtype fc1_out[actual_len][d_ff];
-    dtype act_out[actual_len][d_ff];
+    dtype fc1_out[max_seq_len][d_ff];
+    dtype act_out[max_seq_len][d_ff];
 
     fc1::forward(fc1_out, input, actual_len, w1, b1);
     act::forward(act_out, fc1_out, actual_len);

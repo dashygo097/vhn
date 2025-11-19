@@ -13,9 +13,9 @@ template <typename DType, typename HParams, typename Config, OptLevel OPT_LEVEL>
 class PreNorm;
 
 template <typename NORM_HParams> struct PreNormHParams {
-  using ln_hparams = NORM_HParams;
+  using norm_hparams = NORM_HParams;
 
-  static constexpr int d_model = ln_hparams::hidden_dim;
+  static constexpr int d_model = norm_hparams::hidden_dim;
 };
 
 // ============================================================================
@@ -34,7 +34,7 @@ public:
   PreNorm() = default;
   ~PreNorm() = default;
 
-  using norm_hparams = typename HParams::ln_hparams;
+  using norm_hparams = typename HParams::norm_hparams;
 
   using add = Add<DType, d_model, void, OPT_NONE>;
   using norm = LayerNorm<DType, norm_hparams, void, OPT_NONE>;

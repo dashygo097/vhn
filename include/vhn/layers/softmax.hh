@@ -249,7 +249,7 @@ private:
 #ifdef __VITIS_HLS__
   static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
                                      hls::stream<dtype> &input_stream) {
-    dtype input_buffer[N];
+    dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 

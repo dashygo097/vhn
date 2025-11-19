@@ -22,8 +22,8 @@ struct MulHeadAttnHParams {
   using softmax_hparams = SOFTMAX_HParams;
   using wo_hparams = WO_HParams;
 
-  static constexpr int d_model = WQKV_HParams::input_dim;
-  static constexpr int num_heads = WQKV_HParams::output_dim / d_model;
+  static constexpr int d_model = WQKV_HParams::in_features;
+  static constexpr int num_heads = WQKV_HParams::out_features / d_model;
   static constexpr int head_dim = d_model / num_heads;
   static constexpr int max_seq_len = MAX_SEQ_LEN;
 };

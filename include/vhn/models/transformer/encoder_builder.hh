@@ -72,9 +72,12 @@ public:
         {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},
         {"opt_level", opt_level}};
 
-    json ffn_module = {
-        {"hparams", {{"d_model", d_model}, {"d_ff", d_ff}, {"act", act_str}}},
-        {"opt_level", opt_level}};
+    json ffn_module = {{"hparams",
+                        {{"d_model", d_model},
+                         {"d_ff", d_ff},
+                         {"act", act_str},
+                         {"max_seq_len", max_seq_len}}},
+                       {"opt_level", opt_level}};
 
     json addnorm2_module = {
         {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},
@@ -142,7 +145,9 @@ public:
         {"opt_level", opt_level}};
 
     json ffn_module = {
-        {"hparams", {{"d_model", d_model}, {"d_ff", d_ff}, {"act", act_str}}},
+        {"hparams",
+         {{"d_model", d_model}, {"d_ff", d_ff}, {"act", act_str}},
+         {"max_seq_len", max_seq_len}},
         {"opt_level", opt_level}};
 
     json addnorm2_module = {
@@ -216,9 +221,12 @@ public:
         {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},
         {"opt_level", opt_level}};
 
-    json ffn_module = {
-        {"hparams", {{"d_model", d_model}, {"d_ff", d_ff}, {"act", act_str}}},
-        {"opt_level", opt_level}};
+    json ffn_module = {{"hparams",
+                        {{"d_model", d_model},
+                         {"d_ff", d_ff},
+                         {"act", act_str},
+                         {"max_seq_len", max_seq_len}}},
+                       {"opt_level", opt_level}};
 
     json addnorm2_module = {
         {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},

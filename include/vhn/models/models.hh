@@ -9,7 +9,7 @@
 #include "./transformer/components/postnorm.hh"
 #include "./transformer/components/prenorm.hh"
 #include "./transformer/decoder.hh"
-// #include "./transformer/encoder.hh"
+#include "./transformer/encoder.hh"
 
 // Common
 

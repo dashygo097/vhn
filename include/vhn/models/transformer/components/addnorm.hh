@@ -16,7 +16,7 @@ class AddNorm;
 template <typename NORM_HParams, NormType NORM_TYPE> struct AddNormHParams {
   using norm_hparams = NORM_HParams;
 
-  static constexpr int d_model = NORM_HParams::d_model;
+  static constexpr int d_model = NORM_HParams::hidden_dim;
   static constexpr NormType norm_type = NORM_TYPE;
 };
 
@@ -37,11 +37,10 @@ public:
   AddNorm() = default;
   ~AddNorm() = default;
 
-  using norm_hparams = typename HParams::norm_hparams;
-
-  using addnorm = typename std::conditional<
-      norm_type == POSTNORM, PostNorm<DType, norm_hparams, void, OPT_NONE>,
-      PreNorm<DType, norm_hparams, void, OPT_NONE>>::type;
+  using addnorm =
+      typename std::conditional<norm_type == POSTNORM,
+                                PostNorm<DType, HParams, void, OPT_NONE>,
+                                PreNorm<DType, HParams, void, OPT_NONE>>::type;
 
   static void forward(dtype output[d_model], const dtype input[d_model],
                       const dtype residual[d_model], const gamma_t gamma,
