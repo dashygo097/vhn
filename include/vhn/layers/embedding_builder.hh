@@ -6,7 +6,7 @@
 
 namespace vhn {
 
-class ReduceBuilder : public BaseBuilder {
+class EmbeddingBuilder : public BaseBuilder {
 public:
   std::string generate_hparams(const std::string &name,
                                const std::string &dtype,
@@ -14,40 +14,30 @@ public:
     std::ostringstream oss;
 
     if (!module.contains("hparams")) {
-      throw std::runtime_error("Reduce module '" + name + "' missing hparams");
+      throw std::runtime_error("Embedding module '" + name +
+                               "' missing params");
     }
 
     auto hparams = module["hparams"];
 
-    if (!hparams.contains("n")) {
-      throw std::runtime_error("Reduce module '" + name +
-                               "' missing 'n' parameter");
+    if (!hparams.contains("vocab_size") ||
+        !hparams["vocab_size"].is_number_unsigned()) {
+      throw std::runtime_error("Embedding module '" + name +
+                               "' missing vocab_size param");
     }
 
-    if (!hparams.contains("op")) {
-      throw std::runtime_error("Reduce module '" + name +
-                               "' missing 'op' parameter");
+    if (!hparams.contains("embed_size") ||
+        !hparams["embed_size"].is_number_unsigned()) {
+      throw std::runtime_error("Embedding module '" + name +
+                               "' missing embed_size param");
     }
 
-    int n = hparams["n"].get<int>();
-    std::string op = hparams["op"].get<std::string>();
+    auto vocab_size = hparams["vocab_size"];
+    auto embed_size = hparams["embed_size"];
 
-    std::string impl_class;
-
-    if (op == "sum") {
-      impl_class = "vhn::SumImpl";
-    } else if (op == "mean") {
-      impl_class = "vhn::MeanImpl";
-    } else if (op == "max") {
-      impl_class = "vhn::MaxImpl";
-    } else if (op == "min") {
-      impl_class = "vhn::MinImpl";
-    } else {
-      throw std::runtime_error("Unsupported reduce operation: " + op);
-    }
-
-    oss << "using " << name << "_hparams = vhn::ReduceHParams<" << impl_class
-        << "<" << dtype << ", " << n << ">, " << n << ">;\n";
+    oss << "using " << name << "_hparams = vhn::EmbeddingHParams<";
+    oss << vocab_size << ", " << embed_size;
+    oss << ">;\n\n";
 
     return oss.str();
   }
@@ -89,10 +79,11 @@ public:
     std::ostringstream oss;
 
     std::string opt_level = module.value("opt_level", "OPT_NONE");
+
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::Reduce<" << dtype << ", " << name
+    oss << "using " << name << "_t = vhn::Embedding<" << dtype << ", " << name
         << "_hparams, " << config_type << ", " << opt_level << ">;\n";
 
     return oss.str();

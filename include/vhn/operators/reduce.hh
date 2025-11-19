@@ -141,10 +141,10 @@ public:
   static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
-  static constexpr bool use_tree = Config::_use_reduce_tree;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
+  static constexpr bool use_tree = Config::use_reduce_tree;
 
   static constexpr int num_stages = log2_ceil(n);
   static constexpr int padded_n = next_power_of_2(n);

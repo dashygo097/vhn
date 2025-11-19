@@ -262,9 +262,9 @@ public:
   static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   Elementwise() = default;
   ~Elementwise() = default;

@@ -10,29 +10,33 @@
 
 namespace vhn {
 
-template <typename DType, const int CHANNELS, typename Config = void,
+template <typename DType, typename HParams, typename Config = void,
           OptLevel OPT_LEVEL = OPT_NONE>
 class BatchNorm1d;
+
+template <int CHANNELS> struct BatchNorm1dHParams {
+  static constexpr int channels = CHANNELS;
+};
 
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
-template <typename DType, const int CHANNELS>
-class BatchNorm1d<DType, CHANNELS, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class BatchNorm1d<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int channels = CHANNELS;
+  static constexpr int channels = HParams::channels;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using Weight_t = dtype[CHANNELS];
-  using Bias_t = dtype[CHANNELS];
-  using RunningMean_t = dtype[CHANNELS];
-  using RunningVar_t = dtype[CHANNELS];
+  using Weight_t = dtype[channels];
+  using Bias_t = dtype[channels];
+  using RunningMean_t = dtype[channels];
+  using RunningVar_t = dtype[channels];
 
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[CHANNELS], const dtype input[CHANNELS],
+  static void forward(dtype output[channels], const dtype input[channels],
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -44,7 +48,7 @@ public:
                     epsilon);
   }
 
-  static void forward(dtype output[][CHANNELS], const dtype input[][CHANNELS],
+  static void forward(dtype output[][channels], const dtype input[][channels],
                       const int batch_size, const Weight_t weight,
                       const Bias_t bias, const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -77,7 +81,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * CHANNELS], &input[b * CHANNELS], weight, bias,
+      forward_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
                       running_mean, running_var, epsilon);
     }
   }
@@ -122,15 +126,15 @@ private:
                                      const RunningMean_t running_mean,
                                      const RunningVar_t running_var,
                                      const float epsilon) {
-    dtype input_buffer[CHANNELS];
+    dtype input_buffer[channels];
 
   READ_INPUT:
-    for (int c = 0; c < CHANNELS; c++) {
+    for (int c = 0; c < channels; c++) {
       input_buffer[c] = input_stream.read();
     }
 
   CHANNEL_STREAM_LOOP:
-    for (int c = 0; c < CHANNELS; c++) {
+    for (int c = 0; c < channels; c++) {
       dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));
       dtype output_val =
           weight[c] * (input_buffer[c] - running_mean[c]) * inv_std + bias[c];
@@ -143,26 +147,26 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
-template <typename DType, const int CHANNELS, typename Config>
-class BatchNorm1d<DType, CHANNELS, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class BatchNorm1d<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  static constexpr int channels = CHANNELS;
+  static constexpr int channels = HParams::channels;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
 
-  using Weight_t = dtype[CHANNELS];
-  using Bias_t = dtype[CHANNELS];
-  using RunningMean_t = dtype[CHANNELS];
-  using RunningVar_t = dtype[CHANNELS];
+  using Weight_t = dtype[channels];
+  using Bias_t = dtype[channels];
+  using RunningMean_t = dtype[channels];
+  using RunningVar_t = dtype[channels];
 
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[CHANNELS], const dtype input[CHANNELS],
+  static void forward(dtype output[channels], const dtype input[channels],
                       const Weight_t weight, const Bias_t bias,
                       const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -174,7 +178,7 @@ public:
                     epsilon);
   }
 
-  static void forward(dtype output[][CHANNELS], const dtype input[][CHANNELS],
+  static void forward(dtype output[][channels], const dtype input[][channels],
                       const int batch_size, const Weight_t weight,
                       const Bias_t bias, const RunningMean_t running_mean,
                       const RunningVar_t running_var,
@@ -207,7 +211,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * CHANNELS], &input[b * CHANNELS], weight, bias,
+      forward_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
                       running_mean, running_var, epsilon);
     }
   }
@@ -264,18 +268,18 @@ private:
                                      const RunningMean_t running_mean,
                                      const RunningVar_t running_var,
                                      const float epsilon) {
-    dtype input_buffer[CHANNELS];
+    dtype input_buffer[channels];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
 
   READ_INPUT:
-    for (int c = 0; c < CHANNELS; c++) {
+    for (int c = 0; c < channels; c++) {
 #pragma HLS PIPELINE II = pipeline_ii
       input_buffer[c] = input_stream.read();
     }
 
   CHANNEL_STREAM_LOOP:
-    for (int c = 0; c < CHANNELS; c++) {
+    for (int c = 0; c < channels; c++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
       dtype inv_std = hls::rsqrt(running_var[c] + dtype(epsilon));

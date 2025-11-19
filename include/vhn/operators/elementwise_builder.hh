@@ -68,10 +68,10 @@ public:
 
       for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
         if (it.value().is_boolean()) {
-          oss << "  static constexpr bool _" << it.key() << " = "
+          oss << "  static constexpr bool " << it.key() << " = "
               << (it.value().get<bool>() ? "true" : "false") << ";\n";
         } else if (it.value().is_number_integer()) {
-          oss << "  static constexpr int _" << it.key() << " = "
+          oss << "  static constexpr int " << it.key() << " = "
               << it.value().get<int>() << ";\n";
         }
       }

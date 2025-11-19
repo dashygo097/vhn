@@ -8,27 +8,32 @@
 
 namespace vhn {
 
-template <typename DType, const int VOCAB_SIZE, const int EMBED_DIM,
-          typename Config = void, OptLevel OPT_LEVEL = OPT_NONE>
+template <typename DType, typename HParams, typename Config = void,
+          OptLevel OPT_LEVEL = OPT_NONE>
 class Embedding;
+
+template <int VOCAB_SIZE, int EMBED_SIZE> struct EmbeddingHParams {
+  static constexpr int vocab_size = VOCAB_SIZE;
+  static constexpr int embed_size = EMBED_SIZE;
+};
 
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
-template <typename DType, const int VOCAB_SIZE, const int EMBED_DIM>
-class Embedding<DType, VOCAB_SIZE, EMBED_DIM, void, OPT_NONE> {
+template <typename DType, typename HParams>
+class Embedding<DType, HParams, void, OPT_NONE> {
 public:
   using dtype = DType;
-  static constexpr int vocab_size = VOCAB_SIZE;
-  static constexpr int embed_dim = EMBED_DIM;
+  static constexpr int vocab_size = HParams::vocab_size;
+  static constexpr int embed_size = HParams::embed_size;
   static constexpr OptLevel opt_level = OPT_NONE;
 
-  using Weight_t = dtype[VOCAB_SIZE][EMBED_DIM];
+  using Weight_t = dtype[vocab_size][embed_size];
 
   Embedding() = default;
   ~Embedding() = default;
 
-  static void forward(dtype output[EMBED_DIM], const int input,
+  static void forward(dtype output[embed_size], const int input,
                       const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -36,7 +41,7 @@ public:
     forward_single(output, input, weight);
   }
 
-  static void forward(dtype output[][EMBED_DIM], const int input[],
+  static void forward(dtype output[][embed_size], const int input[],
                       const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -68,10 +73,10 @@ public:
 #endif
 
 private:
-  static void forward_single(dtype output[EMBED_DIM], const int input,
+  static void forward_single(dtype output[embed_size], const int input,
                              const Weight_t weight) {
   OUT_LOOP:
-    for (int i = 0; i < EMBED_DIM; i++) {
+    for (int i = 0; i < embed_size; i++) {
       output[i] = weight[input][i];
     }
   }
@@ -84,8 +89,8 @@ private:
 #pragma HLS LOOP_FLATTEN off
 #endif
     OUT_LOOP:
-      for (int j = 0; j < EMBED_DIM; j++) {
-        output[i * EMBED_DIM + j] = weight[input[i]][j];
+      for (int j = 0; j < embed_size; j++) {
+        output[i * embed_size + j] = weight[input[i]][j];
       }
     }
   }
@@ -98,7 +103,7 @@ private:
     for (int i = 0; i < length; i++) {
       int idx = input.read();
     OUT_LOOP:
-      for (int j = 0; j < EMBED_DIM; j++) {
+      for (int j = 0; j < embed_size; j++) {
         output.write(weight[idx][j]);
       }
     }
@@ -109,25 +114,24 @@ private:
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
-template <typename DType, const int VOCAB_SIZE, const int EMBED_DIM,
-          typename Config>
-class Embedding<DType, VOCAB_SIZE, EMBED_DIM, Config, OPT_ENABLED> {
+template <typename DType, typename HParams, typename Config>
+class Embedding<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  static constexpr int vocab_size = VOCAB_SIZE;
-  static constexpr int embed_dim = EMBED_DIM;
+  static constexpr int vocab_size = HParams::vocab_size;
+  static constexpr int embed_size = HParams::embed_size;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
 
-  using Weight_t = dtype[VOCAB_SIZE][EMBED_DIM];
+  using Weight_t = dtype[vocab_size][embed_size];
 
   Embedding() = default;
   ~Embedding() = default;
 
-  static void forward(dtype output[EMBED_DIM], const int input,
+  static void forward(dtype output[embed_size], const int input,
                       const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -135,7 +139,7 @@ public:
     forward_single(output, input, weight);
   }
 
-  static void forward(dtype output[][EMBED_DIM], const int input[],
+  static void forward(dtype output[][embed_size], const int input[],
                       const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
@@ -167,7 +171,7 @@ public:
 #endif
 
 private:
-  static void forward_single(dtype output[EMBED_DIM], const int input,
+  static void forward_single(dtype output[embed_size], const int input,
                              const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -176,7 +180,7 @@ private:
 #endif
 
   OUT_LOOP:
-    for (int i = 0; i < EMBED_DIM; i++) {
+    for (int i = 0; i < embed_size; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
@@ -199,12 +203,12 @@ private:
 #endif
       int idx = input[i];
     OUT_LOOP:
-      for (int j = 0; j < EMBED_DIM; j++) {
+      for (int j = 0; j < embed_size; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
 #endif
-        output[i * EMBED_DIM + j] = weight[idx][j];
+        output[i * embed_size + j] = weight[idx][j];
       }
     }
   }
@@ -220,7 +224,7 @@ private:
     for (int i = 0; i < length; i++) {
       int idx = input.read();
     OUT_LOOP:
-      for (int j = 0; j < EMBED_DIM; j++) {
+      for (int j = 0; j < embed_size; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor

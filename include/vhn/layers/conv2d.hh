@@ -121,9 +121,9 @@ public:
   static constexpr int out_height = HEIGHT - KERNEL_SIZE + 1 + 2 * PADDING;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Weight_t = dtype[OUT_CHANNELS][IN_CHANNELS][KERNEL_SIZE][KERNEL_SIZE];
   using Bias_t = dtype[OUT_CHANNELS];

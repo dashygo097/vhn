@@ -210,9 +210,9 @@ public:
   static constexpr int spatial_size = WIDTH * HEIGHT;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int unroll_factor = Config::_unroll_factor;
-  static constexpr int partition_factor = Config::_partition_factor;
-  static constexpr int pipeline_ii = Config::_pipeline_ii;
+  static constexpr int unroll_factor = Config::unroll_factor;
+  static constexpr int partition_factor = Config::partition_factor;
+  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Tensor_2d_t = dtype[CHANNELS][spatial_size];
   using Tensor_3d_t = dtype[CHANNELS][HEIGHT][WIDTH];

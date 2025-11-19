@@ -19,14 +19,12 @@ public:
 
     auto hparams = module["hparams"];
 
-    if (!hparams.contains("in_features") ||
-        !hparams["in_features"].is_number_unsigned()) {
+    if (!hparams.contains("in_features")) {
       throw std::runtime_error("Linear module '" + name +
                                "' missing in_features param");
     }
 
-    if (!hparams.contains("out_features") ||
-        !hparams["out_features"].is_number_unsigned()) {
+    if (!hparams.contains("out_features")) {
       throw std::runtime_error("Linear module '" + name +
                                "' missing out_features param");
     }
