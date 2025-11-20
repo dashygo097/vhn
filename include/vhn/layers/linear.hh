@@ -248,11 +248,6 @@ private:
     INNER_LOOP:
       for (int j = 0; j < in_features; j++) {
 #ifdef __VITIS_HLS__
-        constexpr bool should_unroll =
-            (unroll_factor > 1) && (in_features <= 512);
-        if constexpr (should_unroll) {
-#pragma HLS UNROLL factor = unroll_factor
-        }
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 4096
 #pragma HLS BIND_OP variable = acc op = mul impl = dsp
 #endif

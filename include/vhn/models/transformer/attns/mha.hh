@@ -62,7 +62,6 @@ public:
                       const bqkv_t bqkv, const Wo_t wo, const bo_t bo) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     dtype qkv[max_seq_len][3 * d_model];
     wqkv::forward(qkv, input, actual_len, wqkv, bqkv);
@@ -88,7 +87,6 @@ private:
                         const dtype qkv[][3 * d_model], const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     for (int i = 0; i < actual_len; i++) {
       for (int h = 0; h < num_heads; h++) {
@@ -111,7 +109,6 @@ private:
                                 const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
 #ifdef __VITIS_HLS__
 
