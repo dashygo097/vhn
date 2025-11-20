@@ -102,7 +102,7 @@ struct EncoderBlockConfig {
   using ffn_config = FFN_CONFIG;
   using addnorm2_config = ADDNORM2_CONFIG;
 
-  static constexpr int dataflow_enabled = DATAFLOW_ENABLED;
+  static constexpr bool dataflow_enabled = DATAFLOW_ENABLED;
   static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int intermediate_partition = INTERMEDIATE_PARTITION;
 };

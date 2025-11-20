@@ -120,7 +120,7 @@ template <typename NORM_CONFIG, bool DATAFLOW_ENABLED, int PIPELINE_II,
 struct AddNormConfig {
   using norm_config = NORM_CONFIG;
 
-  static constexpr int dataflow_enabled = DATAFLOW_ENABLED;
+  static constexpr bool dataflow_enabled = DATAFLOW_ENABLED;
   static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int partition_factor = PARTITION_FACTOR;
 };

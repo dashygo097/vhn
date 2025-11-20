@@ -195,7 +195,7 @@ struct MulHeadAttnConfig {
   using softmax_config = SOFTMAX_CONFIG;
   using wo_config = WO_CONFIG;
 
-  static constexpr int dataflow_enabled = DATAFLOW_ENABLED;
+  static constexpr bool dataflow_enabled = DATAFLOW_ENABLED;
   static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int qkv_partition_factor = QKV_PARTITION_FACTOR;
   static constexpr int attn_partition_factor = ATTN_PARTITION_FACTOR;
