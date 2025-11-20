@@ -75,7 +75,7 @@ public:
     auto ffn_cfg = hls_cfg.value("ffn", json::object());
     auto addnorm2_cfg = hls_cfg.value("addnorm2", json::object());
 
-    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", false);
+    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
     auto pipeline_ii = hls_cfg.value("pipeline_enabled", 1);
     auto intermediate_partition = hls_cfg.value("intermediate_partition", 4);
 
@@ -109,7 +109,7 @@ public:
       oss << name << "_addnorm2_cfg, ";
     else
       oss << "void, ";
-    oss << dataflow_enabled << ", ";
+    oss << (dataflow_enabled ? "true, " : "false, ");
     oss << pipeline_ii << ", ";
     oss << intermediate_partition << ">;\n\n";
 
@@ -118,69 +118,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
 
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing hparams");
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
     }
-
-    auto hparams = module["hparams"];
-    auto d_model = hparams["d_model"].get<int>();
-    auto num_heads = hparams["num_heads"].get<int>();
-    auto d_ff = hparams["d_ff"].get<int>();
-    auto max_seq_len = hparams["max_seq_len"].get<int>();
-    auto norm_type_str = hparams["norm_type"].get<std::string>();
-    auto act_str = hparams["act"].get<std::string>();
-
-    json mha_module = {{"hparams",
-                        {{"d_model", d_model},
-                         {"num_heads", num_heads},
-                         {"max_seq_len", max_seq_len}}},
-                       {"opt_level", opt_level}};
-
-    json addnorm1_module = {
-        {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},
-        {"opt_level", opt_level}};
-
-    json ffn_module = {{"hparams",
-                        {{"d_model", d_model},
-                         {"d_ff", d_ff},
-                         {"act", act_str},
-                         {"max_seq_len", max_seq_len}}},
-                       {"opt_level", opt_level}};
-
-    json addnorm2_module = {
-        {"hparams", {{"d_model", d_model}, {"norm_type", norm_type_str}}},
-        {"opt_level", opt_level}};
-
-    if (module.contains("hls_cfg")) {
-      mha_module["hls_cfg"] = module["hls_cfg"];
-      addnorm1_module["hls_cfg"] = module["hls_cfg"];
-      ffn_module["hls_cfg"] = module["hls_cfg"];
-      addnorm2_module["hls_cfg"] = module["hls_cfg"];
-    }
-
-    MulHeadAttnBuilder mha_builder;
-    AddNormBuilder addnorm_builder;
-    FFNBuilder ffn_builder;
-
-    oss << mha_builder.generate_type_alias(name + "_mha", dtype, mha_module);
-    oss << addnorm_builder.generate_type_alias(name + "_addnorm1", dtype,
-                                               addnorm1_module);
-    oss << ffn_builder.generate_type_alias(name + "_ffn", dtype, ffn_module);
-    oss << addnorm_builder.generate_type_alias(name + "_addnorm2", dtype,
-                                               addnorm2_module);
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::EncoderBlock<" << dtype << ", "
-        << name << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "EncoderBlock", name, dtype, opt_level)
     return oss.str();
   }
 };

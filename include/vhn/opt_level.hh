@@ -2,5 +2,5 @@
 
 enum OptLevel {
   OPT_NONE,    // No optimization (default)
-  OPT_ENABLED, // Basic optimizations enabled
+  OPT_ENABLED, // Optimizations enabled
 };

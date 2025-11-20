@@ -94,52 +94,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
 
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("FFN module '" + name + "' missing hparams");
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
     }
-
-    auto hparams = module["hparams"];
-    auto d_model = hparams["d_model"].get<int>();
-    auto d_ff = hparams["d_ff"].get<int>();
-    auto max_seq_len = hparams["max_seq_len"].get<int>();
-    auto act = hparams["act"].get<std::string>();
-
-    json fc1_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", d_ff}}},
-        {"opt_level", opt_level}};
-
-    json act_module = {{"hparams", {{"op", act}, {"n", d_ff}}},
-                       {"opt_level", opt_level}};
-
-    json fc2_module = {
-        {"hparams", {{"in_features", d_ff}, {"out_features", d_model}}},
-        {"opt_level", opt_level}};
-
-    if (module.contains("hls_cfg")) {
-      fc1_module["hls_cfg"] = module["hls_cfg"];
-      act_module["hls_cfg"] = module["hls_cfg"];
-      fc2_module["hls_cfg"] = module["hls_cfg"];
-    }
-
-    LinearBuilder linear_builder;
-    ElementwiseBuilder elementwise_builder;
-
-    oss << linear_builder.generate_type_alias(name + "_fc1", dtype, fc1_module);
-    oss << elementwise_builder.generate_type_alias(name + "_act", dtype,
-                                                   act_module);
-    oss << linear_builder.generate_type_alias(name + "_fc2", dtype, fc2_module);
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::FFN<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "FFN", name, dtype, opt_level)
     return oss.str();
   }
 };

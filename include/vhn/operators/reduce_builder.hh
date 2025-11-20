@@ -46,28 +46,14 @@ public:
 
     std::ostringstream oss;
 
-    int unroll_factor = 1;
-    int partition_factor = 1;
-    int pipeline_ii = 1;
-
-    if (hls_cfg.contains("unroll_factor")) {
-      unroll_factor = hls_cfg["unroll_factor"].get<int>();
-    }
-
-    if (hls_cfg.contains("partition_factor")) {
-      partition_factor = hls_cfg["partition_factor"].get<int>();
-    }
-
-    if (hls_cfg.contains("pipeline_ii")) {
-      pipeline_ii = hls_cfg["pipeline_ii"].get<int>();
-    }
-
-    if (hls_cfg.contains("use_tree")) {
-      bool use_tree = hls_cfg["use_tree"].get<bool>();
-    }
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
+    auto unroll_factor = hls_cfg.value("unroll_factor", 4);
+    auto partition_factor = hls_cfg.value("partition_factor", 4);
+    auto use_tree = hls_cfg.value("use_tree", true);
 
     oss << "using " << name << "_cfg = vhn::ReduceConfig<";
-    oss << unroll_factor << ", " << partition_factor << ", " << pipeline_ii;
+    oss << pipeline_ii << ", " << unroll_factor << ", " << partition_factor
+        << ", " << (use_tree ? "true" : "false");
     oss << ">;\n\n";
 
     return oss.str();
@@ -75,16 +61,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
+
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
+    }
+
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::Reduce<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "Reduce", name, dtype, opt_level)
     return oss.str();
   }
 };

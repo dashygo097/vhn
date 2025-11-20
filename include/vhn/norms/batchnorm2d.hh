@@ -196,6 +196,13 @@ private:
 #endif
 };
 
+template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR>
+struct BatchNorm2dConfig {
+  static constexpr int pipeline_ii = PIPELINE_II;
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+};
+
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
@@ -210,9 +217,9 @@ public:
   static constexpr int spatial_size = WIDTH * HEIGHT;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
+  static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Tensor_2d_t = dtype[CHANNELS][spatial_size];
   using Tensor_3d_t = dtype[CHANNELS][HEIGHT][WIDTH];

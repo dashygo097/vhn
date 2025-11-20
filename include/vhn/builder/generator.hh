@@ -100,15 +100,6 @@ private:
       throw std::runtime_error("No generator for type: " + type);
     }
 
-    // dfs
-    if (generator->has_submodules(module)) {
-      auto submodules = module["submodules"];
-      for (size_t i = 0; i < submodules.size(); i++) {
-        std::string subname = name + "_sub" + std::to_string(i);
-        generate_module_recursive(out, submodules[i], subname, dtype, registry);
-      }
-    }
-
     out << "// Configuration for " << name << " (" << type << ")\n";
     out << generator->generate_hparams(name, dtype,
                                        module.value("hparams", json::object()));

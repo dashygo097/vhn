@@ -35,36 +35,32 @@ public:
 
     std::ostringstream oss;
 
-    oss << "struct " << name << "_cfg {\n";
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
+    auto unroll_factor = hls_cfg.value("unroll_factor", 4);
+    auto partition_factor = hls_cfg.value("partition_factor", 4);
 
-    for (auto it = hls_cfg.begin(); it != hls_cfg.end(); ++it) {
-      if (it.value().is_boolean()) {
-        oss << "  static constexpr bool " << it.key() << " = "
-            << (it.value().get<bool>() ? "true" : "false") << ";\n";
-      } else if (it.value().is_number_integer()) {
-        oss << "  static constexpr int " << it.key() << " = "
-            << it.value().get<int>() << ";\n";
-      }
-    }
-
-    oss << "};\n\n";
+    oss << "using " << name << "_cfg = vhn::BatchNorm2dConfig<";
+    oss << pipeline_ii << ", " << unroll_factor << ", " << partition_factor;
+    oss << ">;\n\n";
 
     return oss.str();
   }
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
+
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
+    }
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::BatchNorm2d<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "BatchNorm2d", name, dtype, opt_level)
     return oss.str();
   }
 };

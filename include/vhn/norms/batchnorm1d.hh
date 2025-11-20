@@ -144,6 +144,13 @@ private:
 #endif
 };
 
+template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR>
+struct BatchNorm1dConfig {
+  static constexpr int pipeline_ii = PIPELINE_II;
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+};
+
 // ============================================================================
 // Optimized version (OPT_ENABLED)
 // ============================================================================
@@ -154,9 +161,9 @@ public:
   static constexpr int channels = HParams::channels;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
+  static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Weight_t = dtype[channels];
   using Bias_t = dtype[channels];

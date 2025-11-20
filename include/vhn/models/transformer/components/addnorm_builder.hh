@@ -53,12 +53,12 @@ public:
 
     oss << "using " << name << "_cfg = vhn::FFNConfig<";
     if (hls_cfg.contains("ln"))
-      oss << "  " << name << "_norm_cfg, ";
+      oss << name << "_norm_cfg, ";
     else
-      oss << "  void, ";
-    oss << "  " << dataflow_enabled << ", ";
-    oss << "  " << pipeline_ii << ", ";
-    oss << "  " << partition_factor;
+      oss << "void, ";
+    oss << (dataflow_enabled ? "true" : "false") << ", ";
+    oss << pipeline_ii << ", ";
+    oss << partition_factor;
     oss << ">;\n\n";
 
     return oss.str();
@@ -66,34 +66,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
 
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("AddNorm module '" + name + "' missing hparams");
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
     }
-
-    auto hparams = module["hparams"];
-    auto d_model = hparams["d_model"].get<int>();
-
-    json ln_module = {{"hparams", {{"hidden_dim", d_model}}},
-                      {"opt_level", opt_level}};
-
-    if (module.contains("hls_cfg")) {
-      ln_module["hls_cfg"] = module["hls_cfg"];
-    }
-
-    LayerNormBuilder ln_builder;
-    oss << ln_builder.generate_type_alias(name + "_ln", dtype, ln_module);
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::AddNorm<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "AddNorm", name, dtype, opt_level)
     return oss.str();
   }
 };

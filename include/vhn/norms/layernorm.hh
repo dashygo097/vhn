@@ -182,11 +182,11 @@ private:
 #endif
 };
 
-template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II>
+template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR>
 struct LayerNormConfig {
+  static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int unroll_factor = UNROLL_FACTOR;
   static constexpr int partition_factor = PARTITION_FACTOR;
-  static constexpr int pipeline_ii = PIPELINE_II;
 };
 
 // ============================================================================
@@ -199,9 +199,9 @@ public:
   static constexpr int hidden_dim = hidden_dim;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
+  static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
 
   using Gamma_t = dtype[hidden_dim];
   using Beta_t = dtype[hidden_dim];

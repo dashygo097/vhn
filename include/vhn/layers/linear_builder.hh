@@ -33,16 +33,8 @@ public:
 
     std::ostringstream oss;
 
-    int unroll_factor = 1;
-    int partition_factor = 1;
-
-    if (hls_cfg.contains("unroll_factor")) {
-      unroll_factor = hls_cfg["unroll_factor"].get<int>();
-    }
-
-    if (hls_cfg.contains("partition_factor")) {
-      partition_factor = hls_cfg["partition_factor"].get<int>();
-    }
+    auto unroll_factor = hls_cfg.value("unroll_factor", 4);
+    auto partition_factor = hls_cfg.value("partition_factor", 4);
 
     oss << "using " << name << "_cfg = vhn::LinearConfig<";
     oss << unroll_factor << ", " << partition_factor;
@@ -53,17 +45,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
+
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
+    }
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::Linear<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "Linear", name, dtype, opt_level)
     return oss.str();
   }
 };

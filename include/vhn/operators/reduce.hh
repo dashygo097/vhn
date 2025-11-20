@@ -130,12 +130,12 @@ private:
 #endif
 };
 
-template <int UNROLL_FACTOR, int PARTITION_FACTOR, int PIPELINE_II,
+template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR,
           bool USE_REDUCE_TREE>
 struct ReduceConfig {
+  static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int unroll_factor = UNROLL_FACTOR;
   static constexpr int partition_factor = PARTITION_FACTOR;
-  static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr bool use_reduce_tree = USE_REDUCE_TREE;
 };
 
@@ -150,9 +150,9 @@ public:
   static constexpr int n = HParams::n;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
+  static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr int unroll_factor = Config::unroll_factor;
   static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr bool use_reduce_tree = Config::use_reduce_tree;
 
   static constexpr int num_stages = log2_ceil(n);

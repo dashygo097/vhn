@@ -88,7 +88,7 @@ public:
       oss << name << "_wo_cfg, ";
     else
       oss << "void, ";
-    oss << dataflow_enabled << ", ";
+    oss << (dataflow_enabled ? "true" : "false") << ", ";
     oss << pipeline_ii << ", ";
     oss << qkv_partition_factor << ", ";
     oss << attn_partition_factor << ", ";
@@ -100,53 +100,19 @@ public:
 
   std::string generate_type_alias(const std::string &name,
                                   const std::string &dtype,
-                                  const json &module) const override {
+                                  const json &hls_cfg) const override {
     std::ostringstream oss;
 
-    std::string opt_level = module.value("opt_level", "OPT_NONE");
+    std::string opt_level = "OPT_NONE";
 
-    if (!module.contains("hparams")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing hparams");
+    if (!hls_cfg.empty() && !hls_cfg.is_null()) {
+      opt_level = "OPT_ENABLED";
     }
-
-    auto hparams = module["hparams"];
-    auto d_model = hparams["d_model"].get<int>();
-    auto num_heads = hparams["num_heads"].get<int>();
-    auto max_seq_len = hparams["max_seq_len"].get<int>();
-
-    json wqkv_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", 3 * d_model}}},
-        {"opt_level", opt_level}};
-
-    json softmax_module = {{"hparams", {{"n", max_seq_len}}},
-                           {"opt_level", opt_level}};
-
-    json wo_module = {
-        {"hparams", {{"in_features", d_model}, {"out_features", d_model}}},
-        {"opt_level", opt_level}};
-
-    if (module.contains("hls_cfg")) {
-      wqkv_module["hls_cfg"] = module["hls_cfg"];
-      softmax_module["hls_cfg"] = module["hls_cfg"];
-      wo_module["hls_cfg"] = module["hls_cfg"];
-    }
-
-    LinearBuilder linear_builder;
-    SoftmaxBuilder softmax_builder;
-
-    oss << linear_builder.generate_type_alias(name + "_wqkv", dtype,
-                                              wqkv_module);
-    oss << softmax_builder.generate_type_alias(name + "_softmax", dtype,
-                                               softmax_module);
-    oss << linear_builder.generate_type_alias(name + "_wo", dtype, wo_module);
 
     std::string config_type =
         (opt_level == "OPT_NONE") ? "void" : (name + "_cfg");
 
-    oss << "using " << name << "_t = vhn::MulHeadAttn<" << dtype << ", " << name
-        << "_hparams, " << config_type << ", " << opt_level << ">;\n";
-
+    GENERATE_TYPE_ALIAS(oss, "MulHeadAttn", name, dtype, opt_level)
     return oss.str();
   }
 };
