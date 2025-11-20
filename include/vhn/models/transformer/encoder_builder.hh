@@ -15,36 +15,12 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("d_model")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing d_model param");
-    }
-
-    if (!hparams.contains("num_heads")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing num_heads param");
-    }
-
-    if (!hparams.contains("d_ff")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing d_ff param");
-    }
-
-    if (!hparams.contains("max_seq_len")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing max_seq_len param");
-    }
-
-    if (!hparams.contains("norm_type")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing norm_type param");
-    }
-
-    if (!hparams.contains("act")) {
-      throw std::runtime_error("EncoderBlock module '" + name +
-                               "' missing act param");
-    }
+    NECESSARY_HPARAMS("EncoderBlock", name, "d_model")
+    NECESSARY_HPARAMS("EncoderBlock", name, "num_heads")
+    NECESSARY_HPARAMS("EncoderBlock", name, "d_ff")
+    NECESSARY_HPARAMS("EncoderBlock", name, "max_seq_len")
+    NECESSARY_HPARAMS("EncoderBlock", name, "norm_type")
+    NECESSARY_HPARAMS("EncoderBlock", name, "act")
 
     auto d_model = hparams["d_model"].get<int>();
     auto num_heads = hparams["num_heads"].get<int>();
@@ -93,6 +69,49 @@ public:
     }
 
     std::ostringstream oss;
+
+    auto mha_cfg = hls_cfg.value("mha", json::object());
+    auto addnorm1_cfg = hls_cfg.value("addnorm1", json::object());
+    auto ffn_cfg = hls_cfg.value("ffn", json::object());
+    auto addnorm2_cfg = hls_cfg.value("addnorm2", json::object());
+
+    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", false);
+    auto pipeline_ii = hls_cfg.value("pipeline_enabled", 1);
+    auto intermediate_partition = hls_cfg.value("intermediate_partition", 4);
+
+    MulHeadAttnBuilder mha_builder;
+    AddNormBuilder addnorm_builder;
+    FFNBuilder ffn_builder;
+
+    if (hls_cfg.contains("mha"))
+      oss << mha_builder.generate_config(name + "_mha", mha_cfg);
+    if (hls_cfg.contains("addnorm1"))
+      oss << addnorm_builder.generate_config(name + "_addnorm1", addnorm1_cfg);
+    if (hls_cfg.contains("ffn"))
+      oss << ffn_builder.generate_config(name + "_ffn", ffn_cfg);
+    if (hls_cfg.contains("addnorm2"))
+      oss << addnorm_builder.generate_config(name + "_addnorm2", addnorm2_cfg);
+
+    oss << "using " << name << "_cfg = vhn::EncoderBlockConfig<";
+    if (hls_cfg.contains("mha"))
+      oss << name << "_mha_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("addnorm1"))
+      oss << name << "_addnorm1_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("ffn"))
+      oss << name << "_ffn_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("addnorm2"))
+      oss << name << "_addnorm2_cfg, ";
+    else
+      oss << "void, ";
+    oss << dataflow_enabled << ", ";
+    oss << pipeline_ii << ", ";
+    oss << intermediate_partition << ">;\n\n";
 
     return oss.str();
   }

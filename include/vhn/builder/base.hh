@@ -5,6 +5,12 @@
 #include <string>
 #endif
 
+#define NECESSARY_HPARAMS(type, name, hparam)                                  \
+  if (!hparams.contains(hparam)) {                                             \
+    throw std::runtime_error((std::string)type + " module '" + name +          \
+                             "' missing " + hparam + " param");                \
+  }
+
 #ifndef __VITIS_HLS__
 namespace vhn {
 using json = nlohmann::json;

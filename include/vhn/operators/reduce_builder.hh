@@ -12,16 +12,8 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("n")) {
-      throw std::runtime_error("Reduce module '" + name +
-                               "' missing 'n' parameter");
-    }
-
-    if (!hparams.contains("op")) {
-      throw std::runtime_error("Reduce module '" + name +
-                               "' missing 'op' parameter");
-    }
+    NECESSARY_HPARAMS("Reduce", name, "n")
+    NECESSARY_HPARAMS("Reduce", name, "op")
 
     int n = hparams["n"].get<int>();
     std::string op = hparams["op"].get<std::string>();

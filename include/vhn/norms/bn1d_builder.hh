@@ -12,11 +12,7 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("channels")) {
-      throw std::runtime_error("BatchNorm1d module '" + name +
-                               "' missing channels param");
-    }
+    NECESSARY_HPARAMS("BatchNorm1d", name, "channels")
 
     auto channels = hparams["channels"];
 

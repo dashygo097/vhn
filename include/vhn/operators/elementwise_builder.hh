@@ -12,16 +12,8 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("n")) {
-      throw std::runtime_error("Elementwise module '" + name +
-                               "' missing 'n' parameter");
-    }
-
-    if (!hparams.contains("op")) {
-      throw std::runtime_error("Elementwise module '" + name +
-                               "' missing 'op' parameter");
-    }
+    NECESSARY_HPARAMS("Elementwise", name, "n")
+    NECESSARY_HPARAMS("Elementwise", name, "op")
 
     int n = hparams["n"].get<int>();
     std::string op = hparams["op"].get<std::string>();

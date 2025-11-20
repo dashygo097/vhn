@@ -12,18 +12,8 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("vocab_size") ||
-        !hparams["vocab_size"].is_number_unsigned()) {
-      throw std::runtime_error("Embedding module '" + name +
-                               "' missing vocab_size param");
-    }
-
-    if (!hparams.contains("embed_size") ||
-        !hparams["embed_size"].is_number_unsigned()) {
-      throw std::runtime_error("Embedding module '" + name +
-                               "' missing embed_size param");
-    }
+    NECESSARY_HPARAMS("Embedding", name, "vocab_size")
+    NECESSARY_HPARAMS("Embedding", name, "embed_size")
 
     auto vocab_size = hparams["vocab_size"];
     auto embed_size = hparams["embed_size"];

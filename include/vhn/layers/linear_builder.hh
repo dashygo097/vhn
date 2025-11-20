@@ -12,16 +12,8 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("in_features")) {
-      throw std::runtime_error("Linear module '" + name +
-                               "' missing in_features param");
-    }
-
-    if (!hparams.contains("out_features")) {
-      throw std::runtime_error("Linear module '" + name +
-                               "' missing out_features param");
-    }
+    NECESSARY_HPARAMS("Linear", name, "in_features");
+    NECESSARY_HPARAMS("Linear", name, "out_features");
 
     auto in_features = hparams["in_features"];
     auto out_features = hparams["out_features"];

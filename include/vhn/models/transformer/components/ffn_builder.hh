@@ -14,24 +14,10 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("d_model")) {
-      throw std::runtime_error("FFN module '" + name +
-                               "' missing d_model param");
-    }
-
-    if (!hparams.contains("d_ff")) {
-      throw std::runtime_error("FFN module '" + name + "' missing d_ff param");
-    }
-
-    if (!hparams.contains("max_seq_len")) {
-      throw std::runtime_error("FFN module '" + name +
-                               "' missing max_seq_len param");
-    }
-
-    if (!hparams.contains("act")) {
-      throw std::runtime_error("FFN module '" + name + "' missing act param");
-    }
+    NECESSARY_HPARAMS("FFN", name, "d_model")
+    NECESSARY_HPARAMS("FFN", name, "d_ff")
+    NECESSARY_HPARAMS("FFN", name, "max_seq_len")
+    NECESSARY_HPARAMS("FFN", name, "act")
 
     auto d_model = hparams["d_model"].get<int>();
     auto d_ff = hparams["d_ff"].get<int>();
@@ -65,8 +51,43 @@ public:
     if (hls_cfg.empty() || hls_cfg.is_null()) {
       return "";
     }
-
     std::ostringstream oss;
+
+    auto fc1_cfg = hls_cfg.value("fc1", json::object());
+    auto act_cfg = hls_cfg.value("act", json::object());
+    auto fc2_cfg = hls_cfg.value("fc2", json::object());
+
+    auto dataflow_depth = hls_cfg.value("dataflow_depth", 16);
+    auto seq_unroll = hls_cfg.value("seq_unroll", 1);
+    auto memory_partition = hls_cfg.value("memory_partition", 4);
+
+    LinearBuilder linear_builder;
+    ElementwiseBuilder elementwise_builder;
+
+    if (hls_cfg.contains("fc1"))
+      oss << linear_builder.generate_config(name + "_fc1", fc1_cfg);
+    if (hls_cfg.contains("act"))
+      oss << elementwise_builder.generate_config(name + "_act", act_cfg);
+    if (hls_cfg.contains("fc2"))
+      oss << linear_builder.generate_config(name + "_fc2", fc2_cfg);
+
+    oss << "using " << name << "_cfg = vhn::FFNConfig<";
+    if (hls_cfg.contains("fc1"))
+      oss << "  " << name << "_fc1_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("act"))
+      oss << name << "_act_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("fc2"))
+      oss << name << "_fc2_cfg, ";
+    else
+      oss << "void, ";
+    oss << dataflow_depth << ", ";
+    oss << seq_unroll << ", ";
+    oss << memory_partition;
+    oss << ">;\n\n";
 
     return oss.str();
   }

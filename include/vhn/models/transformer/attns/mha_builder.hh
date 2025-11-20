@@ -14,21 +14,9 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("d_model")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing d_model param");
-    }
-
-    if (!hparams.contains("num_heads")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing num_heads param");
-    }
-
-    if (!hparams.contains("max_seq_len")) {
-      throw std::runtime_error("MulHeadAttn module '" + name +
-                               "' missing max_seq_len param");
-    }
+    NECESSARY_HPARAMS("MulHeadAttn", name, "d_model")
+    NECESSARY_HPARAMS("MulHeadAttn", name, "num_heads")
+    NECESSARY_HPARAMS("MulHeadAttn", name, "max_seq_len")
 
     auto d_model = hparams["d_model"].get<int>();
     auto num_heads = hparams["num_heads"].get<int>();
@@ -65,6 +53,47 @@ public:
     }
 
     std::ostringstream oss;
+
+    auto wqkv_cfg = hls_cfg.value("wqkv", json::object());
+    auto softmax_cfg = hls_cfg.value("softmax", json::object());
+    auto wo_cfg = hls_cfg.value("wo", json::object());
+
+    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
+    auto qkv_partition_factor = hls_cfg.value("partition_factor", 4);
+    auto attn_partition_factor = hls_cfg.value("partition_factor", 4);
+    auto attn_unroll_factor = hls_cfg.value("unroll_factor", 4);
+    auto head_unroll_factor = hls_cfg.value("unroll_factor", 4);
+
+    LinearBuilder linear_builder;
+    SoftmaxBuilder softmax_builder;
+
+    if (hls_cfg.contains("wqkv"))
+      oss << linear_builder.generate_config(name + "_wqkv", wqkv_cfg);
+    if (hls_cfg.contains("softmax"))
+      oss << softmax_builder.generate_config(name + "_softmax", softmax_cfg);
+    if (hls_cfg.contains("wo"))
+      oss << linear_builder.generate_config(name + "_wo", wo_cfg);
+
+    oss << "using " << name << "_cfg = vhn::MulHeadAttnConfig<";
+    if (hls_cfg.contains("wqkv"))
+      oss << name << "_wqkv_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("softmax"))
+      oss << name << "_softmax_cfg, ";
+    else
+      oss << "void, ";
+    if (hls_cfg.contains("wo"))
+      oss << name << "_wo_cfg, ";
+    else
+      oss << "void, ";
+    oss << dataflow_enabled << ", ";
+    oss << pipeline_ii << ", ";
+    oss << qkv_partition_factor << ", ";
+    oss << attn_partition_factor << ", ";
+    oss << attn_unroll_factor << ", ";
+    oss << head_unroll_factor << ">;\n\n";
 
     return oss.str();
   }

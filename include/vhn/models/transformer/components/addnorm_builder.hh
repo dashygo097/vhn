@@ -13,16 +13,8 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("d_model")) {
-      throw std::runtime_error("AddNorm module '" + name +
-                               "' missing d_model param");
-    }
-
-    if (!hparams.contains("norm_type")) {
-      throw std::runtime_error("AddNorm module '" + name +
-                               "' missing norm_type param");
-    }
+    NECESSARY_HPARAMS("AddNorm", name, "d_model")
+    NECESSARY_HPARAMS("AddNorm", name, "norm_type")
 
     auto d_model = hparams["d_model"].get<int>();
     auto norm_type_str = hparams["norm_type"].get<std::string>();
@@ -47,6 +39,27 @@ public:
     }
 
     std::ostringstream oss;
+
+    auto norm_cfg = hls_cfg.value("ln", json::object());
+
+    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
+    auto partition_factor = hls_cfg.value("partition_factor", 4);
+
+    LayerNormBuilder layernorm_builder;
+
+    if (hls_cfg.contains("ln"))
+      oss << layernorm_builder.generate_config(name + "_norm", norm_cfg);
+
+    oss << "using " << name << "_cfg = vhn::FFNConfig<";
+    if (hls_cfg.contains("ln"))
+      oss << "  " << name << "_norm_cfg, ";
+    else
+      oss << "  void, ";
+    oss << "  " << dataflow_enabled << ", ";
+    oss << "  " << pipeline_ii << ", ";
+    oss << "  " << partition_factor;
+    oss << ">;\n\n";
 
     return oss.str();
   }

@@ -12,10 +12,7 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("n")) {
-      throw std::runtime_error("Softmax module '" + name + "' missing n param");
-    }
+    NECESSARY_HPARAMS("Softmax", name, "n")
 
     auto n = hparams["n"].get<int>();
 

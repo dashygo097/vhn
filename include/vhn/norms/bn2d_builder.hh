@@ -12,21 +12,9 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("channels")) {
-      throw std::runtime_error("BatchNorm2d module '" + name +
-                               "' missing channels param");
-    }
-
-    if (!hparams.contains("width")) {
-      throw std::runtime_error("BatchNorm2d module '" + name +
-                               "' missing width param");
-    }
-
-    if (!hparams.contains("height")) {
-      throw std::runtime_error("BatchNorm2d module '" + name +
-                               "' missing height param");
-    }
+    NECESSARY_HPARAMS("BatchNorm2d", name, "channels")
+    NECESSARY_HPARAMS("BatchNorm2d", name, "width")
+    NECESSARY_HPARAMS("BatchNorm2d", name, "height")
 
     auto channels = hparams["channels"].get<int>();
     auto width = hparams["width"].get<int>();

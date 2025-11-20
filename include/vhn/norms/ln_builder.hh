@@ -12,11 +12,7 @@ public:
                                const std::string &dtype,
                                const json &hparams) const override {
     std::ostringstream oss;
-
-    if (!hparams.contains("hidden_dim")) {
-      throw std::runtime_error("LayerNorm module '" + name +
-                               "' missing hidden_dim param");
-    }
+    NECESSARY_HPARAMS("LayerNorm", name, "hidden_dim")
 
     auto hidden_dim = hparams["hidden_dim"];
 
