@@ -48,7 +48,7 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &hls_cfg) const override {
-    if (hls_cfg.empty() || hls_cfg.is_null()) {
+    if (hls_cfg.is_null() && hls_cfg.empty()) {
       return "";
     }
     std::ostringstream oss;
@@ -64,23 +64,23 @@ public:
     LinearBuilder linear_builder;
     ElementwiseBuilder elementwise_builder;
 
-    if (hls_cfg.contains("fc1"))
+    if (hls_cfg.contains("fc1") && !fc1_cfg.empty())
       oss << linear_builder.generate_config(name + "_fc1", fc1_cfg);
-    if (hls_cfg.contains("act"))
+    if (hls_cfg.contains("act") && !act_cfg.empty())
       oss << elementwise_builder.generate_config(name + "_act", act_cfg);
-    if (hls_cfg.contains("fc2"))
+    if (hls_cfg.contains("fc2") && !fc2_cfg.empty())
       oss << linear_builder.generate_config(name + "_fc2", fc2_cfg);
 
     oss << "using " << name << "_cfg = vhn::FFNConfig<";
-    if (hls_cfg.contains("fc1"))
+    if (hls_cfg.contains("fc1") && !fc1_cfg.empty())
       oss << "  " << name << "_fc1_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("act"))
+    if (hls_cfg.contains("act") && !act_cfg.empty())
       oss << name << "_act_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("fc2"))
+    if (hls_cfg.contains("fc2") && !fc2_cfg.empty())
       oss << name << "_fc2_cfg, ";
     else
       oss << "void, ";

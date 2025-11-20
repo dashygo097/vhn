@@ -64,7 +64,7 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &hls_cfg) const override {
-    if (hls_cfg.empty() || hls_cfg.is_null()) {
+    if (hls_cfg.is_null() || hls_cfg.empty()) {
       return "";
     }
 
@@ -83,29 +83,29 @@ public:
     AddNormBuilder addnorm_builder;
     FFNBuilder ffn_builder;
 
-    if (hls_cfg.contains("mha"))
+    if (hls_cfg.contains("mha") && !mha_cfg.empty())
       oss << mha_builder.generate_config(name + "_mha", mha_cfg);
-    if (hls_cfg.contains("addnorm1"))
+    if (hls_cfg.contains("addnorm1") && !addnorm1_cfg.empty())
       oss << addnorm_builder.generate_config(name + "_addnorm1", addnorm1_cfg);
-    if (hls_cfg.contains("ffn"))
+    if (hls_cfg.contains("ffn") && !ffn_cfg.empty())
       oss << ffn_builder.generate_config(name + "_ffn", ffn_cfg);
-    if (hls_cfg.contains("addnorm2"))
+    if (hls_cfg.contains("addnorm2") && !addnorm2_cfg.empty())
       oss << addnorm_builder.generate_config(name + "_addnorm2", addnorm2_cfg);
 
     oss << "using " << name << "_cfg = vhn::EncoderBlockConfig<";
-    if (hls_cfg.contains("mha"))
+    if (hls_cfg.contains("mha") && !mha_cfg.empty())
       oss << name << "_mha_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("addnorm1"))
+    if (hls_cfg.contains("addnorm1") && !addnorm1_cfg.empty())
       oss << name << "_addnorm1_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("ffn"))
+    if (hls_cfg.contains("ffn") && !ffn_cfg.empty())
       oss << name << "_ffn_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("addnorm2"))
+    if (hls_cfg.contains("addnorm2") && !addnorm2_cfg.empty())
       oss << name << "_addnorm2_cfg, ";
     else
       oss << "void, ";

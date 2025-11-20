@@ -34,7 +34,7 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &hls_cfg) const override {
-    if (hls_cfg.empty() || hls_cfg.is_null()) {
+    if (hls_cfg.is_null() && hls_cfg.empty()) {
       return "";
     }
 
@@ -48,11 +48,11 @@ public:
 
     LayerNormBuilder layernorm_builder;
 
-    if (hls_cfg.contains("ln"))
+    if (hls_cfg.contains("ln") && !norm_cfg.empty())
       oss << layernorm_builder.generate_config(name + "_norm", norm_cfg);
 
     oss << "using " << name << "_cfg = vhn::FFNConfig<";
-    if (hls_cfg.contains("ln"))
+    if (hls_cfg.contains("ln") && !norm_cfg.empty())
       oss << name << "_norm_cfg, ";
     else
       oss << "void, ";

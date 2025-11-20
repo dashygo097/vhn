@@ -219,7 +219,6 @@ private:
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
-#pragma HLS BIND_OP variable = output op = assign impl = lut
 #endif
       output[i] = weight[input][i];
     }
@@ -245,16 +244,12 @@ private:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       int idx = input[i];
-#ifdef __VITIS_HLS__
-#pragma HLS BIND_OP variable = idx op = assign impl = lut
-#endif
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
 #ifdef __VITIS_HLS__
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
-#pragma HLS BIND_OP variable = output op = assign impl = lut
 #endif
         output[i * embed_size + j] = weight[idx][j];
       }
@@ -281,13 +276,11 @@ private:
     for (int i = 0; i < length; i++) {
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
       int idx = input.read();
-#pragma HLS BIND_OP variable = idx op = assign impl = lut
     OUT_LOOP:
       for (int j = 0; j < embed_size; j++) {
 #pragma HLS PIPELINE II = pipeline_ii
 #pragma HLS UNROLL factor = unroll_factor
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
-#pragma HLS BIND_OP variable = output op = write impl = lut
         output.write(weight[idx][j]);
       }
     }

@@ -170,7 +170,6 @@ private:
                            const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     for (int i = 0; i < actual_len; i++) {
       for (int h = 0; h < num_heads; h++) {
@@ -257,10 +256,6 @@ public:
                       const bqkv_t bqkv, const Wo_t wo, const bo_t bo) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     dtype qkv[max_seq_len][3 * d_model];
 #ifdef __VITIS_HLS__
@@ -329,9 +324,11 @@ private:
                         const dtype qkv[][3 * d_model], const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#endif
       for (int h = 0; h < num_heads; h++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
@@ -358,7 +355,6 @@ private:
                                 const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
 #ifdef __VITIS_HLS__
     dtype scale = dtype(1.0) / hls::sqrt(dtype(head_dim));
@@ -449,9 +445,11 @@ private:
                            const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#endif
       for (int h = 0; h < num_heads; h++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off

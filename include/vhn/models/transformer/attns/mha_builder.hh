@@ -48,7 +48,7 @@ public:
 
   std::string generate_config(const std::string &name,
                               const json &hls_cfg) const override {
-    if (hls_cfg.empty() || hls_cfg.is_null()) {
+    if (hls_cfg.is_null() && hls_cfg.empty()) {
       return "";
     }
 
@@ -68,23 +68,23 @@ public:
     LinearBuilder linear_builder;
     SoftmaxBuilder softmax_builder;
 
-    if (hls_cfg.contains("wqkv"))
+    if (hls_cfg.contains("wqkv") && !wqkv_cfg.empty())
       oss << linear_builder.generate_config(name + "_wqkv", wqkv_cfg);
-    if (hls_cfg.contains("softmax"))
+    if (hls_cfg.contains("softmax") && !softmax_cfg.empty())
       oss << softmax_builder.generate_config(name + "_softmax", softmax_cfg);
-    if (hls_cfg.contains("wo"))
+    if (hls_cfg.contains("wo") && !wo_cfg.empty())
       oss << linear_builder.generate_config(name + "_wo", wo_cfg);
 
     oss << "using " << name << "_cfg = vhn::MulHeadAttnConfig<";
-    if (hls_cfg.contains("wqkv"))
+    if (hls_cfg.contains("wqkv") && !wqkv_cfg.empty())
       oss << name << "_wqkv_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("softmax"))
+    if (hls_cfg.contains("softmax") && !softmax_cfg.empty())
       oss << name << "_softmax_cfg, ";
     else
       oss << "void, ";
-    if (hls_cfg.contains("wo"))
+    if (hls_cfg.contains("wo") && !wo_cfg.empty())
       oss << name << "_wo_cfg, ";
     else
       oss << "void, ";

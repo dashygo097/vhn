@@ -177,10 +177,6 @@ public:
                       const gamma_t gamma2, const beta_t beta2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
 
     dtype attn_out[max_seq_len][d_model];

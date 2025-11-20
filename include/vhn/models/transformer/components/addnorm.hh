@@ -57,7 +57,6 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     addnorm::forward(output, input, residual, actual_len, gamma, beta);
   }
