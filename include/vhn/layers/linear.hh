@@ -235,10 +235,6 @@ private:
 #pragma HLS ARRAY_PARTITION variable = weight cyclic factor =                  \
     partition_factor dim = 2
 #pragma HLS ARRAY_PARTITION variable = bias cyclic factor = partition_factor
-    } else {
-#pragma HLS BIND_STORAGE variable = weight type = rom_2p impl = uram
-#pragma HLS BIND_STORAGE variable = input type = ram_1p impl = bram
-#pragma HLS BIND_STORAGE variable = bias type = rom_1p impl = bram
     }
 #endif
 
