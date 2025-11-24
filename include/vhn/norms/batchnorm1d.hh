@@ -36,23 +36,21 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[channels], const dtype input[channels],
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype output[channels], const dtype input[channels],
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn1d_1d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(dtype output[][channels], const dtype input[][channels],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype output[][channels], const dtype input[][channels],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -61,16 +59,15 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn1d_1d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype *output, const dtype *input, const int batch_size,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -79,30 +76,29 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
-                      running_mean, running_var, epsilon);
+      bn1d_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
+                   running_mean, running_var, epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias,
-                           running_mean, running_var, epsilon);
+    bn1d_1d_stream_impl(output_stream, input_stream, weight, bias, running_mean,
+                        running_var, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn1d_1d_impl(dtype *output, const dtype *input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -118,12 +114,12 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias,
-                                     const RunningMean_t running_mean,
-                                     const RunningVar_t running_var,
-                                     const float epsilon) {
+  static void bn1d_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream,
+                                  const Weight_t weight, const Bias_t bias,
+                                  const RunningMean_t running_mean,
+                                  const RunningVar_t running_var,
+                                  const float epsilon) {
     dtype input_buffer[channels];
 
   READ_INPUT:
@@ -171,23 +167,21 @@ public:
   BatchNorm1d() = default;
   ~BatchNorm1d() = default;
 
-  static void forward(dtype output[channels], const dtype input[channels],
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype output[channels], const dtype input[channels],
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn1d_1d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(dtype output[][channels], const dtype input[][channels],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype output[][channels], const dtype input[][channels],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -196,16 +190,15 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn1d_1d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(dtype *output, const dtype *input, const int batch_size,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -214,30 +207,29 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
-                      running_mean, running_var, epsilon);
+      bn1d_1d_impl(&output[b * channels], &input[b * channels], weight, bias,
+                   running_mean, running_var, epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn1d(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias,
-                           running_mean, running_var, epsilon);
+    bn1d_1d_stream_impl(output_stream, input_stream, weight, bias, running_mean,
+                        running_var, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn1d_1d_impl(dtype *output, const dtype *input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -265,12 +257,12 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias,
-                                     const RunningMean_t running_mean,
-                                     const RunningVar_t running_var,
-                                     const float epsilon) {
+  static void bn1d_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream,
+                                  const Weight_t weight, const Bias_t bias,
+                                  const RunningMean_t running_mean,
+                                  const RunningVar_t running_var,
+                                  const float epsilon) {
     dtype input_buffer[channels];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor

@@ -64,9 +64,9 @@ public:
     dtype fc1_out[max_seq_len][d_ff];
     dtype act_out[max_seq_len][d_ff];
 
-    fc1::forward(fc1_out, input, actual_len, w1, b1);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, actual_len, w2, b2);
+    fc1::lin(fc1_out, input, actual_len, w1, b1);
+    act::elem(act_out, fc1_out, actual_len);
+    fc2::lin(output, act_out, actual_len, w2, b2);
   }
 
   static void forward(dtype output[d_model], const dtype input[d_model],
@@ -78,9 +78,9 @@ public:
     dtype fc1_out[d_ff];
     dtype act_out[d_ff];
 
-    fc1::forward(fc1_out, input, w1, b1);
-    act::forward(act_out, fc1_out);
-    fc2::forward(output, act_out, w2, b2);
+    fc1::lin(fc1_out, input, w1, b1);
+    act::elem(act_out, fc1_out);
+    fc2::lin(output, act_out, w2, b2);
   }
 
   static void forward(dtype *output, const dtype *input, const int actual_len,
@@ -92,9 +92,9 @@ public:
     dtype *fc1_out = new dtype[actual_len * d_ff];
     dtype *act_out = new dtype[actual_len * d_ff];
 
-    fc1::forward(fc1_out, input, actual_len, w1, b1);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, actual_len, w2, b2);
+    fc1::lin(fc1_out, input, actual_len, w1, b1);
+    act::elem(act_out, fc1_out, actual_len);
+    fc2::lin(output, act_out, actual_len, w2, b2);
 
     delete[] fc1_out;
     delete[] act_out;
@@ -113,9 +113,9 @@ public:
   PROCESS_STREAM:
     for (int i = 0; i < actual_len; i++) {
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-      fc1::forward(fc1_stream, input_stream, w1, b1);
-      act::forward(act_stream, fc1_stream);
-      fc2::forward(output_stream, act_stream, w2, b2);
+      fc1::lin(fc1_stream, input_stream, w1, b1);
+      act::elem(act_stream, fc1_stream);
+      fc2::lin(output_stream, act_stream, w2, b2);
     }
   }
 #endif
@@ -202,9 +202,9 @@ public:
     }
 #endif
 
-    fc1::forward(fc1_out, input, actual_len, w1, b1);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, actual_len, w2, b2);
+    fc1::lin(fc1_out, input, actual_len, w1, b1);
+    act::elem(act_out, fc1_out, actual_len);
+    fc2::lin(output, act_out, actual_len, w2, b2);
   }
 
   static void forward(dtype output[d_model], const dtype input[d_model],
@@ -232,9 +232,9 @@ public:
     fc2_config::partition_factor
 #endif
 
-    fc1::forward(fc1_out, input, w1, b1);
-    act::forward(act_out, fc1_out);
-    fc2::forward(output, act_out, w2, b2);
+    fc1::lin(fc1_out, input, w1, b1);
+    act::elem(act_out, fc1_out);
+    fc2::lin(output, act_out, w2, b2);
   }
 
   // ========================================================================
@@ -259,9 +259,9 @@ public:
     }
 #endif
 
-    fc1::forward(fc1_out, input, actual_len, w1, b1);
-    act::forward(act_out, fc1_out, actual_len);
-    fc2::forward(output, act_out, actual_len, w2, b2);
+    fc1::lin(fc1_out, input, actual_len, w1, b1);
+    act::elem(act_out, fc1_out, actual_len);
+    fc2::lin(output, act_out, actual_len, w2, b2);
 
     delete[] fc1_out;
     delete[] act_out;
@@ -283,9 +283,9 @@ public:
   PROCESS_STREAM:
     for (int i = 0; i < actual_len; i++) {
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-      fc1::forward(fc1_stream, input_stream, w1, b1);
-      act::forward(act_stream, fc1_stream);
-      fc2::forward(output_stream, act_stream, w2, b2);
+      fc1::lin(fc1_stream, input_stream, w1, b1);
+      act::elem(act_stream, fc1_stream);
+      fc2::lin(output_stream, act_stream, w2, b2);
     }
   }
 #endif

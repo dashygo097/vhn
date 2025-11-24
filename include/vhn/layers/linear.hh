@@ -33,18 +33,17 @@ public:
   Linear() = default;
   ~Linear() = default;
 
-  static void forward(dtype output[out_features],
-                      const dtype input[in_features], const Weight_t weight,
-                      const Bias_t bias) {
+  static void lin(dtype output[out_features], const dtype input[in_features],
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, weight, bias);
+    lin_1d_impl(output, input, weight, bias);
   }
 
-  static void forward(dtype output[][out_features],
-                      const dtype input[][in_features], const int batch_size,
-                      const Weight_t weight, const Bias_t bias) {
+  static void lin(dtype output[][out_features],
+                  const dtype input[][in_features], const int batch_size,
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -54,12 +53,12 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(output[b], input[b], weight, bias);
+      lin_1d_impl(output[b], input[b], weight, bias);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size,
-                      const Weight_t weight, const Bias_t bias) {
+  static void lin(dtype *output, const dtype *input, const int batch_size,
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -69,24 +68,24 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(&output[b * out_features], &input[b * in_features],
-                      weight, bias);
+      lin_1d_impl(&output[b * out_features], &input[b * in_features], weight,
+                  bias);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias) {
+  static void lin(hls::stream<dtype> &output_stream,
+                  hls::stream<dtype> &input_stream, const Weight_t weight,
+                  const Bias_t bias) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+    lin_1d_stream_impl(output_stream, input_stream, weight, bias);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Weight_t weight, const Bias_t bias) {
+  static void lin_1d_impl(dtype *output, const dtype *input,
+                          const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -110,9 +109,9 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias) {
+  static void lin_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                 hls::stream<dtype> &input_stream,
+                                 const Weight_t weight, const Bias_t bias) {
 #pragma HLS INLINE off
     dtype input[in_features];
   READ_LOOP:
@@ -170,18 +169,17 @@ public:
   Linear() = default;
   ~Linear() = default;
 
-  static void forward(dtype output[out_features],
-                      const dtype input[in_features], const Weight_t weight,
-                      const Bias_t bias) {
+  static void lin(dtype output[out_features], const dtype input[in_features],
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, weight, bias);
+    lin_1d_impl(output, input, weight, bias);
   }
 
-  static void forward(dtype output[][out_features],
-                      const dtype input[][in_features], const int batch_size,
-                      const Weight_t weight, const Bias_t bias) {
+  static void lin(dtype output[][out_features],
+                  const dtype input[][in_features], const int batch_size,
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -191,12 +189,12 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(output[b], input[b], weight, bias);
+      lin_1d_impl(output[b], input[b], weight, bias);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size,
-                      const Weight_t weight, const Bias_t bias) {
+  static void lin(dtype *output, const dtype *input, const int batch_size,
+                  const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -206,23 +204,23 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(&output[b * out_features], &input[b * in_features],
-                      weight, bias);
+      lin_1d_impl(&output[b * out_features], &input[b * in_features], weight,
+                  bias);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias) {
+  static void lin(hls::stream<dtype> &output_stream,
+                  hls::stream<dtype> &input_stream, const Weight_t weight,
+                  const Bias_t bias) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, weight, bias);
+    lin_1d_stream_impl(output_stream, input_stream, weight, bias);
   }
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Weight_t weight, const Bias_t bias) {
+  static void lin_1d_impl(dtype *output, const dtype *input,
+                          const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 
@@ -249,11 +247,11 @@ private:
 
     if constexpr (use_systolic && OUT_TILE < out_features &&
                   IN_TILE < in_features) {
-      forward_tiled_systolic(output_buffer, input, weight, bias);
+      lin_tiled_systolic(output_buffer, input, weight, bias);
     } else if constexpr (OUT_TILE < out_features || IN_TILE < in_features) {
-      forward_tiled(output_buffer, input, weight, bias);
+      lin_tiled(output_buffer, input, weight, bias);
     } else {
-      forward_standard(output_buffer, input, weight, bias);
+      lin_standard(output_buffer, input, weight, bias);
     }
 
 #ifdef __VITIS_HLS__
@@ -269,8 +267,8 @@ private:
 #endif
   }
 
-  static void forward_standard(dtype *output, const dtype *input,
-                               const Weight_t weight, const Bias_t bias) {
+  static void lin_standard(dtype *output, const dtype *input,
+                           const Weight_t weight, const Bias_t bias) {
   OUTER_LOOP:
     for (int i = 0; i < out_features; i++) {
 #ifdef __VITIS_HLS__
@@ -299,8 +297,8 @@ private:
     }
   }
 
-  static void forward_tiled(dtype *output, const dtype *input,
-                            const Weight_t weight, const Bias_t bias) {
+  static void lin_tiled(dtype *output, const dtype *input,
+                        const Weight_t weight, const Bias_t bias) {
     constexpr int OUT_TILE = (tile_size_out > 0) ? tile_size_out : 32;
     constexpr int IN_TILE = (tile_size_in > 0) ? tile_size_in : 64;
 
@@ -369,8 +367,8 @@ private:
     }
   }
 
-  static void forward_tiled_systolic(dtype *output, const dtype *input,
-                                     const Weight_t weight, const Bias_t bias) {
+  static void lin_tiled_systolic(dtype *output, const dtype *input,
+                                 const Weight_t weight, const Bias_t bias) {
     constexpr int OUT_TILE = (tile_size_out > 0) ? tile_size_out : 16;
     constexpr int IN_TILE = (tile_size_in > 0) ? tile_size_in : 16;
 
@@ -436,9 +434,9 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Weight_t weight, const Bias_t bias) {
+  static void lin_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                 hls::stream<dtype> &input_stream,
+                                 const Weight_t weight, const Bias_t bias) {
 #pragma HLS INLINE off
 
     dtype input[in_features];

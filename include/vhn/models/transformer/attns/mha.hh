@@ -64,7 +64,7 @@ public:
 #pragma HLS INLINE off
 #endif
     dtype qkv[max_seq_len][3 * d_model];
-    wqkv::forward(qkv, input, actual_len, wqkv, bqkv);
+    wqkv::lin(qkv, input, actual_len, wqkv, bqkv);
 
     dtype q[max_seq_len][num_heads][head_dim];
     dtype k[max_seq_len][num_heads][head_dim];
@@ -77,7 +77,7 @@ public:
     dtype concat[max_seq_len][d_model];
     concat_heads(concat, attn_output, actual_len);
 
-    wo::forward(output, concat, actual_len, wo, bo);
+    wo::lin(output, concat, actual_len, wo, bo);
   }
 
 private:
@@ -141,7 +141,7 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-        softmax::forward(attn_weights[i], scores[i]);
+        softmax::sm(attn_weights[i], scores[i]);
       }
 
       for (int i = 0; i < actual_len; i++) {
@@ -267,7 +267,7 @@ public:
 #pragma HLS ARRAY_PARTITION variable = qkv type = cyclic factor = 4 dim = 2
     }
 #endif
-    wqkv::forward(qkv, input, actual_len, wqkv, bqkv);
+    wqkv::lin(qkv, input, actual_len, wqkv, bqkv);
 
     dtype q[max_seq_len][num_heads][head_dim];
     dtype k[max_seq_len][num_heads][head_dim];
@@ -313,7 +313,7 @@ public:
 #endif
     concat_heads(concat, attn_output, actual_len);
 
-    wo::forward(output, concat, actual_len, wo, bo);
+    wo::lin(output, concat, actual_len, wo, bo);
   }
 
 private:
@@ -435,7 +435,7 @@ private:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #pragma HLS PIPELINE II = pipeline_ii
 #endif
-        softmax::forward(attn_weights[i], scores[i]);
+        softmax::sm(attn_weights[i], scores[i]);
       }
 
       for (int i = 0; i < actual_len; i++) {

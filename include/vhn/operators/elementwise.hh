@@ -30,55 +30,39 @@ public:
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[n], const dtype input) {
+  static void elem(dtype output[n], const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
 
-    forward_1d_impl(output, input);
+    elem_1d_impl(output, input);
   }
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void elem(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input);
+    elem_1d_impl(output, input);
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2) {
+  static void elem(dtype output[n], const dtype input1[n], const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
 
-    forward_1d_impl(output, input1, input2);
+    elem_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2[n]) {
+  static void elem(dtype output[n], const dtype input1[n],
+                   const dtype input2[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input1, input2);
+    elem_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[][n], const dtype input[][n],
-                      const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW
-#endif
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward_1d_impl(output[b], input[b]);
-    }
-  }
-
-  static void forward(dtype output[][n], const dtype input1[][n],
-                      const dtype input2[][n], const int batch_size) {
+  static void elem(dtype output[][n], const dtype input[][n],
+                   const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -88,26 +72,12 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(output[b], input1[b], input2[b]);
+      elem_1d_impl(output[b], input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype input, const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW
-#endif
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward_1d_impl(&output[b * n], input);
-    }
-  }
-
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void elem(dtype output[][n], const dtype input1[][n],
+                   const dtype input2[][n], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -117,12 +87,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * n], &input[b * n]);
+      elem_1d_impl(output[b], input1[b], input2[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input1, const dtype input2,
-                      const int batch_size) {
+  static void elem(dtype *output, const dtype input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -133,13 +102,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-
-      forward_1d_impl(&output[b * n], &input1[b * n], input2);
+      elem_1d_impl(&output[b * n], input);
     }
   }
 
-  static void forward(dtype *output, const dtype *input1, const dtype *input2,
-                      const int batch_size) {
+  static void elem(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -149,27 +116,59 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
+      elem_1d_impl(&output[b * n], &input[b * n]);
+    }
+  }
+
+  static void elem(dtype *output, const dtype *input1, const dtype input2,
+                   const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+
+      elem_1d_impl(&output[b * n], &input1[b * n], input2);
+    }
+  }
+
+  static void elem(dtype *output, const dtype *input1, const dtype *input2,
+                   const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      elem_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void elem(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream);
+    elem_1d_stream_impl(output_stream, input_stream);
   }
 
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream1,
-                      hls::stream<dtype> &input_stream2) {
+  static void elem(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream1,
+                   hls::stream<dtype> &input_stream2) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream1, input_stream2);
+    elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
   }
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype input) {
+  static void elem_1d_impl(dtype *output, const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -179,7 +178,7 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input) {
+  static void elem_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -189,8 +188,8 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input1,
-                              const dtype *input2) {
+  static void elem_1d_impl(dtype *output, const dtype *input1,
+                           const dtype *input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -200,8 +199,8 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input1,
-                              const dtype input2) {
+  static void elem_1d_impl(dtype *output, const dtype *input1,
+                           const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -212,8 +211,8 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream) {
+  static void elem_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 
   READ_INPUT:
@@ -226,9 +225,9 @@ private:
     }
   }
 
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream1,
-                                     hls::stream<dtype> &input_stream2) {
+  static void elem_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream1,
+                                  hls::stream<dtype> &input_stream2) {
     dtype input_buffer1[n];
     dtype input_buffer2[n];
 
@@ -276,55 +275,39 @@ public:
   Elementwise() = default;
   ~Elementwise() = default;
 
-  static void forward(dtype output[n], const dtype input) {
+  static void elem(dtype output[n], const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
 
-    forward_1d_impl(output, input);
+    elem_1d_impl(output, input);
   }
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void elem(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input);
+    elem_1d_impl(output, input);
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2) {
+  static void elem(dtype output[n], const dtype input1[n], const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
 
-    forward_1d_impl(output, input1, input2);
+    elem_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[n], const dtype input1[n],
-                      const dtype input2[n]) {
+  static void elem(dtype output[n], const dtype input1[n],
+                   const dtype input2[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input1, input2);
+    elem_1d_impl(output, input1, input2);
   }
 
-  static void forward(dtype output[][n], const dtype input[][n],
-                      const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW
-#endif
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward_1d_impl(output[b], input[b]);
-    }
-  }
-
-  static void forward(dtype output[][n], const dtype input1[][n],
-                      const dtype input2[][n], const int batch_size) {
+  static void elem(dtype output[][n], const dtype input[][n],
+                   const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -334,26 +317,12 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(output[b], input1[b], input2[b]);
+      elem_1d_impl(output[b], input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype input, const int batch_size) {
-#ifdef __VITIS_HLS__
-#pragma HLS INLINE off
-#pragma HLS DATAFLOW
-#endif
-
-  BATCH_LOOP:
-    for (int b = 0; b < batch_size; b++) {
-#ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
-#endif
-      forward_1d_impl(&output[b * n], input);
-    }
-  }
-
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void elem(dtype output[][n], const dtype input1[][n],
+                   const dtype input2[][n], const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -363,12 +332,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * n], &input[b * n]);
+      elem_1d_impl(output[b], input1[b], input2[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input1, const dtype input2,
-                      const int batch_size) {
+  static void elem(dtype *output, const dtype input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -379,13 +347,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-
-      forward_1d_impl(&output[b * n], &input1[b * n], input2);
+      elem_1d_impl(&output[b * n], input);
     }
   }
 
-  static void forward(dtype *output, const dtype *input1, const dtype *input2,
-                      const int batch_size) {
+  static void elem(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -395,27 +361,59 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
+      elem_1d_impl(&output[b * n], &input[b * n]);
+    }
+  }
+
+  static void elem(dtype *output, const dtype *input1, const dtype input2,
+                   const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+
+      elem_1d_impl(&output[b * n], &input1[b * n], input2);
+    }
+  }
+
+  static void elem(dtype *output, const dtype *input1, const dtype *input2,
+                   const int batch_size) {
+#ifdef __VITIS_HLS__
+#pragma HLS INLINE off
+#pragma HLS DATAFLOW
+#endif
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_FLATTEN off
+#endif
+      elem_1d_impl(&output[b * n], &input1[b * n], &input2[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void elem(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream);
+    elem_1d_stream_impl(output_stream, input_stream);
   }
 
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream1,
-                      hls::stream<dtype> &input_stream2) {
+  static void elem(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream1,
+                   hls::stream<dtype> &input_stream2) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream1, input_stream2);
+    elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
   }
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype input) {
+  static void elem_1d_impl(dtype *output, const dtype input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -430,7 +428,7 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input) {
+  static void elem_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -446,8 +444,8 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input1,
-                              const dtype input2) {
+  static void elem_1d_impl(dtype *output, const dtype *input1,
+                           const dtype input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -464,8 +462,8 @@ private:
     }
   }
 
-  static void forward_1d_impl(dtype *output, const dtype *input1,
-                              const dtype *input2) {
+  static void elem_1d_impl(dtype *output, const dtype *input1,
+                           const dtype *input2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = output cyclic factor = partition_factor
@@ -483,8 +481,8 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream) {
+  static void elem_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
@@ -503,9 +501,9 @@ private:
     }
   }
 
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream1,
-                                     hls::stream<dtype> &input_stream2) {
+  static void elem_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                  hls::stream<dtype> &input_stream1,
+                                  hls::stream<dtype> &input_stream2) {
     dtype input_buffer1[n];
     dtype input_buffer2[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer1 cyclic factor =           \

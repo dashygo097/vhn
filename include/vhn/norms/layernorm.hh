@@ -34,19 +34,18 @@ public:
   LayerNorm() = default;
   ~LayerNorm() = default;
 
-  static void forward(dtype output[hidden_dim], const dtype input[hidden_dim],
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype output[hidden_dim], const dtype input[hidden_dim],
+                 const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, gamma, beta, epsilon);
+    ln_1d_impl(output, input, gamma, beta, epsilon);
   }
 
-  static void forward(dtype output[][hidden_dim],
-                      const dtype input[][hidden_dim], const int seq_len,
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype output[][hidden_dim], const dtype input[][hidden_dim],
+                 const int seq_len, const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -56,13 +55,13 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-      forward_1d_impl(output[i], input[i], gamma, beta, epsilon);
+      ln_1d_impl(output[i], input[i], gamma, beta, epsilon);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int seq_len,
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype *output, const dtype *input, const int seq_len,
+                 const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -72,25 +71,24 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-      forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
-                      beta, epsilon);
+      ln_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma, beta,
+                 epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Gamma_t gamma,
-                      const Beta_t beta, const float epsilon = 1e-5) {
+  static void ln(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream, const Gamma_t gamma,
+                 const Beta_t beta, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+    ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Gamma_t gamma, const Beta_t beta,
-                              const float epsilon) {
+  static void ln_1d_impl(dtype *output, const dtype *input, const Gamma_t gamma,
+                         const Beta_t beta, const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -134,10 +132,10 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Gamma_t gamma, const Beta_t beta,
-                                     const float epsilon) {
+  static void ln_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream,
+                                const Gamma_t gamma, const Beta_t beta,
+                                const float epsilon) {
 #pragma HLS INLINE off
     dtype input_buffer[hidden_dim];
 
@@ -207,19 +205,18 @@ public:
   LayerNorm() = default;
   ~LayerNorm() = default;
 
-  static void forward(dtype output[hidden_dim], const dtype input[hidden_dim],
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype output[hidden_dim], const dtype input[hidden_dim],
+                 const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input, gamma, beta, epsilon);
+    ln_1d_impl(output, input, gamma, beta, epsilon);
   }
 
-  static void forward(dtype output[][hidden_dim],
-                      const dtype input[][hidden_dim], const int seq_len,
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype output[][hidden_dim], const dtype input[][hidden_dim],
+                 const int seq_len, const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -228,13 +225,13 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_1d_impl(output[i], input[i], gamma, beta, epsilon);
+      ln_1d_impl(output[i], input[i], gamma, beta, epsilon);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int seq_len,
-                      const Gamma_t gamma, const Beta_t beta,
-                      const float epsilon = 1e-5) {
+  static void ln(dtype *output, const dtype *input, const int seq_len,
+                 const Gamma_t gamma, const Beta_t beta,
+                 const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -245,25 +242,24 @@ public:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #pragma HLS PIPELINE II = 1
 #endif
-      forward_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma,
-                      beta, epsilon);
+      ln_1d_impl(&output[i * hidden_dim], &input[i * hidden_dim], gamma, beta,
+                 epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Gamma_t gamma,
-                      const Beta_t beta, const float epsilon = 1e-5) {
+  static void ln(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream, const Gamma_t gamma,
+                 const Beta_t beta, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+    ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input,
-                              const Gamma_t gamma, const Beta_t beta,
-                              const float epsilon) {
+  static void ln_1d_impl(dtype *output, const dtype *input, const Gamma_t gamma,
+                         const Beta_t beta, const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 
@@ -332,10 +328,10 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream,
-                                     const Gamma_t gamma, const Beta_t beta,
-                                     const float epsilon) {
+  static void ln_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream,
+                                const Gamma_t gamma, const Beta_t beta,
+                                const float epsilon) {
 #pragma HLS INLINE off
 
     dtype input_buffer[hidden_dim];

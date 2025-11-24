@@ -47,8 +47,8 @@ public:
 #endif
     dtype normed[d_model];
 
-    norm::forward(normed, input, gamma, beta);
-    add::forward(output, residual, normed);
+    norm::ln(normed, input, gamma, beta);
+    add::elem(output, residual, normed);
   }
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
@@ -64,8 +64,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      norm::forward(normed, input[i], gamma, beta);
-      add::forward(output[i], residual[i], normed);
+      norm::fn(normed, input[i], gamma, beta);
+      add::elem(output[i], residual[i], normed);
     }
   }
 
@@ -82,8 +82,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      norm::forward(normed, input + i * d_model, gamma, beta);
-      add::forward(output + i * d_model, residual + i * d_model, normed);
+      norm::fn(normed, input + i * d_model, gamma, beta);
+      add::elem(output + i * d_model, residual + i * d_model, normed);
     }
   }
 };

@@ -37,36 +37,33 @@ public:
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(Tensor_3d_t output, const Tensor_3d_t input,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(Tensor_3d_t output, const Tensor_3d_t input,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_3d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn2d_3d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(Tensor_2d_t output, const Tensor_2d_t input,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(Tensor_2d_t output, const Tensor_2d_t input,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_2d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn2d_2d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(dtype output[][CHANNELS][HEIGHT][WIDTH],
+                   const dtype input[][CHANNELS][HEIGHT][WIDTH],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -75,17 +72,16 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_3d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn2d_3d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
-  static void forward(dtype output[][CHANNELS][spatial_size],
-                      const dtype input[][CHANNELS][spatial_size],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(dtype output[][CHANNELS][spatial_size],
+                   const dtype input[][CHANNELS][spatial_size],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -94,30 +90,29 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_2d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn2d_2d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_stream_impl(output_stream, input_stream, weight, bias, running_mean,
-                        running_var, epsilon);
+    bn2d_stream_impl(output_stream, input_stream, weight, bias, running_mean,
+                     running_var, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn2d_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -137,11 +132,11 @@ private:
     }
   }
 
-  static void forward_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn2d_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -166,12 +161,12 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  const Weight_t weight, const Bias_t bias,
-                                  const RunningMean_t running_mean,
-                                  const RunningVar_t running_var,
-                                  const float epsilon) {
+  static void bn2d_stream_impl(hls::stream<dtype> &output_stream,
+                               hls::stream<dtype> &input_stream,
+                               const Weight_t weight, const Bias_t bias,
+                               const RunningMean_t running_mean,
+                               const RunningVar_t running_var,
+                               const float epsilon) {
     dtype input_buffer[spatial_size];
 
   READ_INPUT:
@@ -229,36 +224,33 @@ public:
   BatchNorm2d() = default;
   ~BatchNorm2d() = default;
 
-  static void forward(Tensor_3d_t output, const Tensor_3d_t input,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(Tensor_3d_t output, const Tensor_3d_t input,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_3d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn2d_3d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(Tensor_2d_t output, const Tensor_2d_t input,
-                      const Weight_t weight, const Bias_t bias,
-                      const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(Tensor_2d_t output, const Tensor_2d_t input,
+                   const Weight_t weight, const Bias_t bias,
+                   const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_2d_impl(output, input, weight, bias, running_mean, running_var,
-                    epsilon);
+    bn2d_2d_impl(output, input, weight, bias, running_mean, running_var,
+                 epsilon);
   }
 
-  static void forward(dtype output[][CHANNELS][HEIGHT][WIDTH],
-                      const dtype input[][CHANNELS][HEIGHT][WIDTH],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(dtype output[][CHANNELS][HEIGHT][WIDTH],
+                   const dtype input[][CHANNELS][HEIGHT][WIDTH],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -267,17 +259,16 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_3d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn2d_3d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
-  static void forward(dtype output[][CHANNELS][spatial_size],
-                      const dtype input[][CHANNELS][spatial_size],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(dtype output[][CHANNELS][spatial_size],
+                   const dtype input[][CHANNELS][spatial_size],
+                   const int batch_size, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -286,30 +277,29 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_2d_impl(output[b], input[b], weight, bias, running_mean,
-                      running_var, epsilon);
+      bn2d_2d_impl(output[b], input[b], weight, bias, running_mean, running_var,
+                   epsilon);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const RunningMean_t running_mean,
-                      const RunningVar_t running_var,
-                      const float epsilon = 1e-5) {
+  static void bn2d(hls::stream<dtype> &output_stream,
+                   hls::stream<dtype> &input_stream, const Weight_t weight,
+                   const Bias_t bias, const RunningMean_t running_mean,
+                   const RunningVar_t running_var, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
-    forward_stream_impl(output_stream, input_stream, weight, bias, running_mean,
-                        running_var, epsilon);
+    bn2d_stream_impl(output_stream, input_stream, weight, bias, running_mean,
+                     running_var, epsilon);
   }
 
 #endif
 
 private:
-  static void forward_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn2d_2d_impl(Tensor_2d_t output, const Tensor_2d_t input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
@@ -345,11 +335,11 @@ private:
     }
   }
 
-  static void forward_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
-                              const Weight_t weight, const Bias_t bias,
-                              const RunningMean_t running_mean,
-                              const RunningVar_t running_var,
-                              const float epsilon) {
+  static void bn2d_3d_impl(Tensor_3d_t output, const Tensor_3d_t input,
+                           const Weight_t weight, const Bias_t bias,
+                           const RunningMean_t running_mean,
+                           const RunningVar_t running_var,
+                           const float epsilon) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor =                   \
@@ -390,12 +380,12 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  const Weight_t weight, const Bias_t bias,
-                                  const RunningMean_t running_mean,
-                                  const RunningVar_t running_var,
-                                  const float epsilon) {
+  static void bn2d_stream_impl(hls::stream<dtype> &output_stream,
+                               hls::stream<dtype> &input_stream,
+                               const Weight_t weight, const Bias_t bias,
+                               const RunningMean_t running_mean,
+                               const RunningVar_t running_var,
+                               const float epsilon) {
     dtype input_buffer[spatial_size];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor

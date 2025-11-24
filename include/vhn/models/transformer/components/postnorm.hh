@@ -47,8 +47,8 @@ public:
 #endif
     dtype sum[d_model];
 
-    add::forward(sum, input, residual);
-    norm::forward(output, sum, gamma, beta);
+    add::elem(sum, input, residual);
+    norm::ln(output, sum, gamma, beta);
   }
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
@@ -64,8 +64,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      add::forward(sum, input[i], residual[i], actual_len);
-      norm::forward(output[i], sum, gamma, beta, actual_len);
+      add::elem(sum, input[i], residual[i], actual_len);
+      norm::ln(output[i], sum, gamma, beta, actual_len);
     }
   }
 
@@ -82,9 +82,8 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      add::forward(sum, input + i * d_model, residual + i * d_model,
-                   actual_len);
-      norm::forward(output + i * d_model, sum, gamma, beta, actual_len);
+      add::elem(sum, input + i * d_model, residual + i * d_model, actual_len);
+      norm::ln(output + i * d_model, sum, gamma, beta, actual_len);
     }
   }
 };

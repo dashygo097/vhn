@@ -37,22 +37,22 @@ public:
   Reduce() = default;
   ~Reduce() = default;
 
-  static dtype forward(const dtype input[n]) {
+  static dtype reduce(const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    return forward_sequential(input);
+    return reduce_sequential(input);
   }
 
-  static void forward(dtype &output, const dtype input[n]) {
+  static void reduce(dtype &output, const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    output = forward_sequential(input);
+    output = reduce_sequential(input);
   }
 
-  static void forward(dtype output[], const dtype input[][n],
-                      const int batch_size) {
+  static void reduce(dtype output[], const dtype input[][n],
+                     const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -62,11 +62,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_sequential(input[b]);
+      output[b] = reduce_sequential(input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void reduce(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -76,25 +76,25 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward_sequential(&input[b * n]);
+      output[b] = reduce_sequential(&input[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static dtype forward(hls::stream<dtype> &input_stream) {
+  static dtype reduce(hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    return forward_stream_impl(input_stream);
+    return reduce_stream_impl(input_stream);
   }
 
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void reduce(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    output_stream.write(forward_stream_impl(input_stream));
+    output_stream.write(reduce_stream_impl(input_stream));
   }
 #endif
 
 private:
-  static dtype forward_sequential(const dtype *input) {
+  static dtype reduce_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -109,7 +109,7 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
+  static dtype reduce_stream_impl(hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer complete
 
@@ -161,26 +161,26 @@ public:
   Reduce() = default;
   ~Reduce() = default;
 
-  static dtype forward(const dtype input[n]) {
+  static dtype reduce(const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
     if constexpr (use_reduce_tree) {
-      return forward_tree(input);
+      return reduce_tree(input);
     } else {
-      return forward_sequential(input);
+      return reduce_sequential(input);
     }
   }
 
-  static void forward(dtype &output, const dtype input[n]) {
+  static void reduce(dtype &output, const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    output = forward(input);
+    output = reduce(input);
   }
 
-  static void forward(dtype output[], const dtype input[][n],
-                      const int batch_size) {
+  static void reduce(dtype output[], const dtype input[][n],
+                     const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -190,11 +190,11 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward(input[b]);
+      output[b] = reduce(input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void reduce(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS DATAFLOW
@@ -204,26 +204,26 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      output[b] = forward(&input[b * n]);
+      output[b] = reduce(&input[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static dtype forward(hls::stream<dtype> &input_stream) {
+  static dtype reduce(hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    return forward_stream_impl(input_stream);
+    return reduce_stream_impl(input_stream);
   }
 
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void reduce(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    output_stream.write(forward_stream_impl(input_stream));
+    output_stream.write(reduce_stream_impl(input_stream));
   }
 
 #endif
 
 private:
-  static dtype forward_sequential(const dtype *input) {
+  static dtype reduce_sequential(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -242,7 +242,7 @@ private:
     return impl::finalize(acc);
   }
 
-  static dtype forward_tree(const dtype *input) {
+  static dtype reduce_tree(const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -267,12 +267,12 @@ private:
       }
     }
 
-    dtype result = forward_tree_recursive<padded_n>(padded_input);
+    dtype result = reduce_tree_recursive<padded_n>(padded_input);
     return impl::finalize(result);
   }
 
   template <int SIZE>
-  static dtype forward_tree_recursive(const dtype input[SIZE]) {
+  static dtype reduce_tree_recursive(const dtype input[SIZE]) {
     if constexpr (SIZE == 1) {
       return input[0];
     } else {
@@ -310,12 +310,12 @@ private:
         combined[i] = impl::kernel(left_result[i], right_result[i]);
       }
 
-      return forward_tree_recursive<HALF>(combined);
+      return reduce_tree_recursive<HALF>(combined);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static dtype forward_stream_impl(hls::stream<dtype> &input_stream) {
+  static dtype reduce_stream_impl(hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor
@@ -327,7 +327,7 @@ private:
     }
 
     if constexpr (use_reduce_tree) {
-      return forward_tree_internal(input_buffer);
+      return reduce_tree_internal(input_buffer);
     } else {
       dtype acc = dtype(0);
     REDUCE_STREAM_LOOP:

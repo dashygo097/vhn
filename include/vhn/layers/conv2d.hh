@@ -50,18 +50,18 @@ public:
   Conv2d() = default;
   ~Conv2d() = default;
 
-  static void forward(Output_t output, const Input_t input,
-                      const Weight_t weight, const Bias_t bias) {
+  static void conv2d(Output_t output, const Input_t input,
+                     const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_3d_impl(output, input, weight, bias);
+    conv2d_3d_impl(output, input, weight, bias);
   }
 
-  static void forward(dtype output[][out_channels][out_width][out_height],
-                      const dtype input[][in_channels][width][height],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias) {
+  static void conv2d(dtype output[][out_channels][out_width][out_height],
+                     const dtype input[][in_channels][width][height],
+                     const int batch_size, const Weight_t weight,
+                     const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
@@ -71,23 +71,23 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      forward_3d_impl(output[b], input[b], weight, bias);
+      conv2d_3d_impl(output[b], input[b], weight, bias);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const int batch_size) {
+  static void conv2d(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream, const Weight_t weight,
+                     const Bias_t bias, const int batch_size) {
 #pragma HLS INLINE off
-    forward_stream_impl(output_stream, input_stream, weight, bias, batch_size);
+    conv2d_stream_impl(output_stream, input_stream, weight, bias, batch_size);
   }
 #endif
 
 private:
-  static void forward_3d_impl(dtype output[out_channels][out_width][out_height],
-                              const dtype input[in_channels][width][height],
-                              const Weight_t weight, const Bias_t bias) {
+  static void conv2d_3d_impl(dtype output[out_channels][out_width][out_height],
+                             const dtype input[in_channels][width][height],
+                             const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input type = cyclic factor = 4 dim = 1
@@ -143,10 +143,10 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  const Weight_t weight, const Bias_t bias,
-                                  const int batch_size) {
+  static void conv2d_stream_impl(hls::stream<dtype> &output_stream,
+                                 hls::stream<dtype> &input_stream,
+                                 const Weight_t weight, const Bias_t bias,
+                                 const int batch_size) {
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
@@ -161,7 +161,7 @@ private:
       }
 
       dtype output_buffer[out_channels][out_width][out_height];
-      forward_3d_impl(output_buffer, input_buffer, weight, bias);
+      conv2d_3d_impl(output_buffer, input_buffer, weight, bias);
 
     WRITE_OUTPUT:
       for (int oc = 0; oc < out_channels; oc++) {
@@ -219,18 +219,18 @@ public:
   Conv2d() = default;
   ~Conv2d() = default;
 
-  static void forward(Output_t output, const Input_t input,
-                      const Weight_t weight, const Bias_t bias) {
+  static void conv2d(Output_t output, const Input_t input,
+                     const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_3d_impl(output, input, weight, bias);
+    conv2d_3d_impl(output, input, weight, bias);
   }
 
-  static void forward(dtype output[][out_channels][out_width][out_height],
-                      const dtype input[][in_channels][width][height],
-                      const int batch_size, const Weight_t weight,
-                      const Bias_t bias) {
+  static void conv2d(dtype output[][out_channels][out_width][out_height],
+                     const dtype input[][in_channels][width][height],
+                     const int batch_size, const Weight_t weight,
+                     const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
@@ -243,23 +243,23 @@ public:
 #pragma HLS PIPELINE II = 1
       }
 #endif
-      forward_3d_impl(output[b], input[b], weight, bias);
+      conv2d_3d_impl(output[b], input[b], weight, bias);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream, const Weight_t weight,
-                      const Bias_t bias, const int batch_size) {
+  static void conv2d(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream, const Weight_t weight,
+                     const Bias_t bias, const int batch_size) {
 #pragma HLS INLINE off
-    forward_stream_impl(output_stream, input_stream, weight, bias, batch_size);
+    conv2d_stream_impl(output_stream, input_stream, weight, bias, batch_size);
   }
 #endif
 
 private:
-  static void forward_3d_impl(dtype output[out_channels][out_width][out_height],
-                              const dtype input[in_channels][width][height],
-                              const Weight_t weight, const Bias_t bias) {
+  static void conv2d_3d_impl(dtype output[out_channels][out_width][out_height],
+                             const dtype input[in_channels][width][height],
+                             const Weight_t weight, const Bias_t bias) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 
@@ -347,10 +347,10 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  const Weight_t weight, const Bias_t bias,
-                                  const int batch_size) {
+  static void conv2d_stream_impl(hls::stream<dtype> &output_stream,
+                                 hls::stream<dtype> &input_stream,
+                                 const Weight_t weight, const Bias_t bias,
+                                 const int batch_size) {
 #pragma HLS INLINE off
 
     constexpr bool should_partition = (partition_factor > 1) &&
@@ -382,7 +382,7 @@ private:
     partition_factor dim = 1
       }
 
-      forward_3d_impl(output_buffer, input_buffer, weight, bias);
+      conv2d_3d_impl(output_buffer, input_buffer, weight, bias);
 
     WRITE_OUTPUT:
       for (int oc = 0; oc < out_channels; oc++) {

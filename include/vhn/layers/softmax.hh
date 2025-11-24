@@ -30,15 +30,15 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void sm(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input);
+    sm_1d_impl(output, input);
   }
 
-  static void forward(dtype output[][n], const dtype input[][n],
-                      const int batch_size) {
+  static void sm(dtype output[][n], const dtype input[][n],
+                 const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -48,11 +48,11 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(output[b], input[b]);
+      sm_1d_impl(output[b], input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void sm(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -62,21 +62,21 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_1d_impl(&output[b * n], &input[b * n]);
+      sm_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void sm(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream);
+    sm_1d_stream_impl(output_stream, input_stream);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input) {
+  static void sm_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -110,8 +110,8 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream) {
+  static void sm_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 
   READ_INPUT:
@@ -167,15 +167,15 @@ public:
   Softmax() = default;
   ~Softmax() = default;
 
-  static void forward(dtype output[n], const dtype input[n]) {
+  static void sm(dtype output[n], const dtype input[n]) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_1d_impl(output, input);
+    sm_1d_impl(output, input);
   }
 
-  static void forward(dtype output[][n], const dtype input[][n],
-                      const int batch_size) {
+  static void sm(dtype output[][n], const dtype input[][n],
+                 const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -186,11 +186,11 @@ public:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #pragma HLS PIPELINE II = 1
 #endif
-      forward_1d_impl(output[b], input[b]);
+      sm_1d_impl(output[b], input[b]);
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const int batch_size) {
+  static void sm(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -201,21 +201,21 @@ public:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #pragma HLS PIPELINE II = 1
 #endif
-      forward_1d_impl(&output[b * n], &input[b * n]);
+      sm_1d_impl(&output[b * n], &input[b * n]);
     }
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream) {
+  static void sm(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output_stream, input_stream);
+    sm_1d_stream_impl(output_stream, input_stream);
   }
 
 #endif
 
 private:
-  static void forward_1d_impl(dtype *output, const dtype *input) {
+  static void sm_1d_impl(dtype *output, const dtype *input) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor
@@ -270,8 +270,8 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output_stream,
-                                     hls::stream<dtype> &input_stream) {
+  static void sm_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream) {
     dtype input_buffer[n];
 #pragma HLS ARRAY_PARTITION variable = input_buffer cyclic factor =            \
     partition_factor

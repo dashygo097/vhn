@@ -33,16 +33,16 @@ public:
   Embedding() = default;
   ~Embedding() = default;
 
-  static void forward(dtype output[embed_size], const int input,
-                      const Weight_t weight) {
+  static void emb(dtype output[embed_size], const int input,
+                  const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_single(output, input, weight);
+    emb_single(output, input, weight);
   }
 
-  static void forward(dtype output[][embed_size], const int input[],
-                      const int batch_size, const Weight_t weight) {
+  static void emb(dtype output[][embed_size], const int input[],
+                  const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -52,29 +52,29 @@ public:
 #pragma HLS LOOP_FLATTEN off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
-      forward_single(output[i], input[i], weight);
+      emb_single(output[i], input[i], weight);
     }
   }
 
-  static void forward(dtype *output, const int *input, const int length,
-                      const Weight_t weight) {
+  static void emb(dtype *output, const int *input, const int length,
+                  const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_impl_1d(output, input, length, weight);
+    emb_impl_1d(output, input, length, weight);
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output, hls::stream<int> &input,
-                      const int length, const Weight_t weight) {
+  static void emb(hls::stream<dtype> &output, hls::stream<int> &input,
+                  const int length, const Weight_t weight) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output, input, length, weight);
+    emb_1d_stream_impl(output, input, length, weight);
   }
 #endif
 
 private:
-  static void forward_single(dtype output[embed_size], const int input,
-                             const Weight_t weight) {
+  static void emb_single(dtype output[embed_size], const int input,
+                         const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -87,8 +87,8 @@ private:
     }
   }
 
-  static void forward_impl_1d(dtype *output, const int *input, const int length,
-                              const Weight_t weight) {
+  static void emb_impl_1d(dtype *output, const int *input, const int length,
+                          const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -108,9 +108,9 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output,
-                                     hls::stream<int> &input, const int length,
-                                     const Weight_t weight) {
+  static void emb_1d_stream_impl(hls::stream<dtype> &output,
+                                 hls::stream<int> &input, const int length,
+                                 const Weight_t weight) {
 #pragma HLS INLINE off
   LENGTH_LOOP:
     for (int i = 0; i < length; i++) {
@@ -153,16 +153,16 @@ public:
   Embedding() = default;
   ~Embedding() = default;
 
-  static void forward(dtype output[embed_size], const int input,
-                      const Weight_t weight) {
+  static void emb(dtype output[embed_size], const int input,
+                  const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_single(output, input, weight);
+    emb_single(output, input, weight);
   }
 
-  static void forward(dtype output[][embed_size], const int input[],
-                      const int batch_size, const Weight_t weight) {
+  static void emb(dtype output[][embed_size], const int input[],
+                  const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
@@ -173,29 +173,29 @@ public:
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #pragma HLS PIPELINE II = 1
 #endif
-      forward_single(output[i], input[i], weight);
+      emb_single(output[i], input[i], weight);
     }
   }
 
-  static void forward(dtype *output, const int *input, const int length,
-                      const Weight_t weight) {
+  static void emb(dtype *output, const int *input, const int length,
+                  const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    forward_impl_1d(output, input, length, weight);
+    emb_impl_1d(output, input, length, weight);
   }
 
 #ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output, hls::stream<int> &input,
-                      const int length, const Weight_t weight) {
+  static void emb(hls::stream<dtype> &output, hls::stream<int> &input,
+                  const int length, const Weight_t weight) {
 #pragma HLS INLINE off
-    forward_1d_stream_impl(output, input, length, weight);
+    emb_1d_stream_impl(output, input, length, weight);
   }
 #endif
 
 private:
-  static void forward_single(dtype output[embed_size], const int input,
-                             const Weight_t weight) {
+  static void emb_single(dtype output[embed_size], const int input,
+                         const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
     constexpr bool should_partition =
@@ -222,8 +222,8 @@ private:
     }
   }
 
-  static void forward_impl_1d(dtype *output, const int *input, const int length,
-                              const Weight_t weight) {
+  static void emb_impl_1d(dtype *output, const int *input, const int length,
+                          const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
     constexpr bool should_partition =
@@ -255,9 +255,9 @@ private:
   }
 
 #ifdef __VITIS_HLS__
-  static void forward_1d_stream_impl(hls::stream<dtype> &output,
-                                     hls::stream<int> &input, const int length,
-                                     const Weight_t weight) {
+  static void emb_1d_stream_impl(hls::stream<dtype> &output,
+                                 hls::stream<int> &input, const int length,
+                                 const Weight_t weight) {
 #pragma HLS INLINE off
 
     constexpr bool should_partition =
