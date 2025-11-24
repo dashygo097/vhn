@@ -64,7 +64,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
 #endif
-      norm::fn(normed, input[i], gamma, beta);
+      norm::ln(normed, input[i], gamma, beta);
       add::elem(output[i], residual[i], normed);
     }
   }

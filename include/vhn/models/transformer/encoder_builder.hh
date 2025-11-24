@@ -76,7 +76,7 @@ public:
     auto addnorm2_cfg = hls_cfg.value("addnorm2", json::object());
 
     auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
-    auto pipeline_ii = hls_cfg.value("pipeline_enabled", 1);
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
     auto intermediate_partition = hls_cfg.value("intermediate_partition", 4);
 
     MulHeadAttnBuilder mha_builder;

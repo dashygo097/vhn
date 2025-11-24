@@ -31,8 +31,8 @@ public:
 
     std::ostringstream oss;
 
-    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
-    auto unroll_factor = hls_cfg.value("unroll_factor", 4);
+    auto pipeline_ii = hls_cfg.value("pipeline_ii", 4);
+    auto unroll_factor = hls_cfg.value("unroll_factor", 2);
     auto partition_factor = hls_cfg.value("partition_factor", 4);
 
     oss << "using " << name << "_cfg = vhn::SoftmaxConfig<";
