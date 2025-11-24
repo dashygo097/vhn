@@ -3,6 +3,7 @@
 #ifndef __VITIS_HLS__
 #include "../../../builder/builder.hh"
 #include "../../../norms/ln_builder.hh"
+#include "../../../operators/elementwise_builder.hh"
 #include <sstream>
 
 namespace vhn {
@@ -41,24 +42,28 @@ public:
     std::ostringstream oss;
 
     auto norm_cfg = hls_cfg.value("ln", json::object());
+    auto add_cfg = hls_cfg.value("add", json::object());
 
-    auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
-    auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
-    auto partition_factor = hls_cfg.value("partition_factor", 4);
+    auto memory_partition = hls_cfg.value("memory_partition", 4);
 
     LayerNormBuilder layernorm_builder;
+    ElementwiseBuilder elementwise_builder;
 
     if (hls_cfg.contains("ln") && !norm_cfg.empty())
       oss << layernorm_builder.generate_config(name + "_norm", norm_cfg);
+    if (hls_cfg.contains("add") && !hls_cfg["add"].empty())
+      oss << elementwise_builder.generate_config(name + "_add", hls_cfg["add"]);
 
-    oss << "using " << name << "_cfg = vhn::FFNConfig<";
+    oss << "using " << name << "_cfg = vhn::AddNormConfig<";
     if (hls_cfg.contains("ln") && !norm_cfg.empty())
       oss << name << "_norm_cfg, ";
     else
       oss << "void, ";
-    oss << (dataflow_enabled ? "true" : "false") << ", ";
-    oss << pipeline_ii << ", ";
-    oss << partition_factor;
+    if (hls_cfg.contains("add") && !add_cfg.empty())
+      oss << name << "_add_cfg, ";
+    else
+      oss << "void, ";
+    oss << memory_partition;
     oss << ">;\n\n";
 
     return oss.str();

@@ -71,14 +71,12 @@ public:
   }
 };
 
-template <typename NORM_CONFIG, bool DATAFLOW_ENABLED, int PIPELINE_II,
-          int PARTITION_FACTOR>
+template <typename NORM_CONFIG, typename ADD_CONFIG, int MEMORY_PARTITION>
 struct AddNormConfig {
   using norm_config = NORM_CONFIG;
+  using add_config = ADD_CONFIG;
 
-  static constexpr bool dataflow_enabled = DATAFLOW_ENABLED;
-  static constexpr int pipeline_ii = PIPELINE_II;
-  static constexpr int partition_factor = PARTITION_FACTOR;
+  static constexpr int memory_partition = MEMORY_PARTITION;
 };
 
 // ============================================================================
@@ -92,11 +90,7 @@ public:
   static constexpr NormType norm_type = HParams::norm_type;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
-  static constexpr int partition_factor = Config::partition_factor;
-  static constexpr int pipeline_ii = Config::pipeline_ii;
-  static constexpr int dataflow_enabled = Config::dataflow_enabled;
-
-  using norm_config = typename Config::norm_config;
+  static constexpr int memory_partition = Config::memory_partition;
 
   using gamma_t = dtype[d_model];
   using beta_t = dtype[d_model];
@@ -104,15 +98,9 @@ public:
   AddNorm() = default;
   ~AddNorm() = default;
 
-  static constexpr bool is_norm_optimized =
-      !std::is_same<norm_config, void>::value;
-
   using addnorm = typename std::conditional<
-      norm_type == POSTNORM,
-      PostNorm<DType, HParams, norm_config,
-               is_norm_optimized ? OPT_ENABLED : OPT_NONE>,
-      PreNorm<DType, HParams, norm_config,
-              is_norm_optimized ? OPT_ENABLED : OPT_NONE>>::type;
+      norm_type == POSTNORM, PostNorm<DType, HParams, Config, OPT_ENABLED>,
+      PreNorm<DType, HParams, Config, OPT_ENABLED>>::type;
 
   static void forward(dtype output[d_model], const dtype input[d_model],
                       const dtype residual[d_model], const gamma_t gamma,
@@ -130,9 +118,9 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
-    partition_factor
+    memory_partition
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
-    partition_factor
+    memory_partition
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
@@ -144,9 +132,9 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
-    partition_factor
+    memory_partition
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
-    partition_factor
+    memory_partition
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
