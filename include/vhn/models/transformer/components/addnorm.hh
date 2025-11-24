@@ -48,7 +48,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    addnorm::forward(output, input, residual, gamma, beta);
+    addnorm::addnorm(output, input, residual, gamma, beta);
   }
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
@@ -57,7 +57,7 @@ public:
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #endif
-    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
   }
 
   static void forward(dtype *output, const dtype *input, const dtype *residual,
@@ -67,50 +67,8 @@ public:
 #pragma HLS INLINE off
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
   }
-
-#ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream,
-                      hls::stream<dtype> &residual_stream, const int actual_len,
-                      const gamma_t gamma, const beta_t beta) {
-#pragma HLS INLINE off
-    forward_stream_impl(output_stream, input_stream, residual_stream,
-                        actual_len, gamma, beta);
-  }
-#endif
-
-private:
-#ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  hls::stream<dtype> &residual_stream,
-                                  const int actual_len, const gamma_t gamma,
-                                  const beta_t beta) {
-  SEQ_LOOP:
-    for (int i = 0; i < actual_len; i++) {
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-      dtype input_buffer[d_model];
-      dtype residual_buffer[d_model];
-
-    READ_INPUT:
-      for (int j = 0; j < d_model; j++) {
-        input_buffer[j] = input_stream.read();
-        residual_buffer[j] = residual_stream.read();
-      }
-
-      dtype output_buffer[d_model];
-      addnorm::forward_single(output_buffer, input_buffer, residual_buffer,
-                              gamma, beta);
-
-    WRITE_OUTPUT:
-      for (int j = 0; j < d_model; j++) {
-        output_stream.write(output_buffer[j]);
-      }
-    }
-  }
-#endif
 };
 
 template <typename NORM_CONFIG, bool DATAFLOW_ENABLED, int PIPELINE_II,
@@ -163,7 +121,7 @@ public:
 #pragma HLS INLINE off
 #pragma HLS PIPELINE II = 1
 #endif
-    addnorm::forward(output, input, residual, gamma, beta);
+    addnorm::addnorm(output, input, residual, gamma, beta);
   }
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
@@ -177,7 +135,7 @@ public:
     partition_factor
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
   }
 
   static void forward(dtype *output, const dtype *input, const dtype *residual,
@@ -191,69 +149,8 @@ public:
     partition_factor
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-    addnorm::forward(output, input, residual, actual_len, gamma, beta);
+    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
   }
-
-#ifdef __VITIS_HLS__
-  static void forward(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream,
-                      hls::stream<dtype> &residual_stream, const int actual_len,
-                      const gamma_t gamma, const beta_t beta) {
-#pragma HLS INLINE off
-#pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
-    partition_factor
-#pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
-    partition_factor
-    forward_stream_impl(output_stream, input_stream, residual_stream,
-                        actual_len, gamma, beta);
-  }
-#endif
-
-private:
-#ifdef __VITIS_HLS__
-  static void forward_stream_impl(hls::stream<dtype> &output_stream,
-                                  hls::stream<dtype> &input_stream,
-                                  hls::stream<dtype> &residual_stream,
-                                  const int actual_len, const gamma_t gamma,
-                                  const beta_t beta) {
-    dtype input_buffer[d_model];
-    dtype residual_buffer[d_model];
-    dtype output_buffer[d_model];
-
-    constexpr bool should_partition =
-        (partition_factor > 1) && (d_model <= 2048);
-    if constexpr (should_partition) {
-#pragma HLS ARRAY_PARTITION variable = input_buffer type = cyclic factor =     \
-    partition_factor
-#pragma HLS ARRAY_PARTITION variable = residual_buffer type = cyclic factor =  \
-    partition_factor
-#pragma HLS ARRAY_PARTITION variable = output_buffer type = cyclic factor =    \
-    partition_factor
-    }
-
-  SEQ_LOOP:
-    for (int i = 0; i < actual_len; i++) {
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-#pragma HLS PIPELINE II = pipeline_ii
-
-    READ_INPUT:
-      for (int j = 0; j < d_model; j++) {
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
-        input_buffer[j] = input_stream.read();
-        residual_buffer[j] = residual_stream.read();
-      }
-
-      addnorm::forward_single(output_buffer, input_buffer, residual_buffer,
-                              gamma, beta);
-
-    WRITE_OUTPUT:
-      for (int j = 0; j < d_model; j++) {
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 2048
-        output_stream.write(output_buffer[j]);
-      }
-    }
-  }
-#endif
 };
 
 } // namespace vhn

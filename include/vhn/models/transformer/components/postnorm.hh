@@ -39,7 +39,7 @@ public:
   using add = Add<DType, d_model, void, OPT_NONE>;
   using norm = LayerNorm<DType, norm_hparams, void, OPT_NONE>;
 
-  static void forward(dtype output[d_model], const dtype input[d_model],
+  static void addnorm(dtype output[d_model], const dtype input[d_model],
                       const dtype residual[d_model], const gamma_t gamma,
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
@@ -51,7 +51,7 @@ public:
     norm::ln(output, sum, gamma, beta);
   }
 
-  static void forward(dtype output[][d_model], const dtype input[][d_model],
+  static void addnorm(dtype output[][d_model], const dtype input[][d_model],
                       const dtype residual[][d_model], const int actual_len,
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
@@ -69,7 +69,7 @@ public:
     }
   }
 
-  static void forward(dtype *output, const dtype *input, const dtype *residual,
+  static void addnorm(dtype *output, const dtype *input, const dtype *residual,
                       const int actual_len, const gamma_t gamma,
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
