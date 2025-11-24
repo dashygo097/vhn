@@ -60,6 +60,7 @@ public:
 
     auto dataflow_enabled = hls_cfg.value("dataflow_enabled", true);
     auto pipeline_ii = hls_cfg.value("pipeline_ii", 1);
+    auto tile_size = hls_cfg.value("attn_tile_size", 16);
     auto qkv_partition_factor = hls_cfg.value("partition_factor", 4);
     auto attn_partition_factor = hls_cfg.value("partition_factor", 4);
     auto attn_unroll_factor = hls_cfg.value("unroll_factor", 4);
@@ -91,6 +92,7 @@ public:
     oss << (dataflow_enabled ? "true" : "false") << ", ";
     oss << pipeline_ii << ", ";
     oss << qkv_partition_factor << ", ";
+    oss << tile_size << ", ";
     oss << attn_partition_factor << ", ";
     oss << attn_unroll_factor << ", ";
     oss << head_unroll_factor << ">;\n\n";

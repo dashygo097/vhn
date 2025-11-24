@@ -35,9 +35,14 @@ public:
 
     auto unroll_factor = hls_cfg.value("unroll_factor", 4);
     auto partition_factor = hls_cfg.value("partition_factor", 4);
+    auto tile_size_out = hls_cfg.value("tile_size_out", 16);
+    auto tile_size_in = hls_cfg.value("tile_size_in", 16);
+    auto use_systolic = hls_cfg.value("use_systolic", false);
 
     oss << "using " << name << "_cfg = vhn::LinearConfig<";
-    oss << unroll_factor << ", " << partition_factor;
+    oss << unroll_factor << ", " << partition_factor << ", ";
+    oss << tile_size_out << ", " << tile_size_in << ", ";
+    oss << (use_systolic ? "true" : "false");
     oss << ">;\n\n";
 
     return oss.str();

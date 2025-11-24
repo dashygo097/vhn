@@ -184,7 +184,7 @@ private:
 
 template <typename WQKV_CONFIG, typename SOFTMAX_CONFIG, typename WO_CONFIG,
           bool DATAFLOW_ENABLED, int PIPELINE_II, int QKV_PARTITION_FACTOR,
-          int ATTN_PARTITION_FACTOR, int ATTN_UNROLL_FACTOR,
+          int ATTN_TILE_SIZE, int ATTN_PARTITION_FACTOR, int ATTN_UNROLL_FACTOR,
           int HEAD_UNROLL_FACTOR>
 struct MulHeadAttnConfig {
   using wqkv_config = WQKV_CONFIG;
@@ -194,6 +194,7 @@ struct MulHeadAttnConfig {
   static constexpr bool dataflow_enabled = DATAFLOW_ENABLED;
   static constexpr int pipeline_ii = PIPELINE_II;
   static constexpr int qkv_partition_factor = QKV_PARTITION_FACTOR;
+  static constexpr int attn_tile_size = ATTN_TILE_SIZE;
   static constexpr int attn_partition_factor = ATTN_PARTITION_FACTOR;
   static constexpr int attn_unroll_factor = ATTN_UNROLL_FACTOR;
   static constexpr int head_unroll_factor = HEAD_UNROLL_FACTOR;
@@ -215,6 +216,7 @@ public:
   static constexpr int dataflow_enabled = Config::dataflow_enabled;
   static constexpr int pipeline_ii = Config::pipeline_ii;
   static constexpr int qkv_partition_factor = Config::qkv_partition_factor;
+  static constexpr int attn_tile_size = Config::attn_tile_size;
   static constexpr int attn_partition_factor = Config::attn_partition_factor;
   static constexpr int attn_unroll_factor = Config::attn_unroll_factor;
   static constexpr int head_unroll_factor = Config::head_unroll_factor;
@@ -352,8 +354,7 @@ private:
                                 const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#endif
-#ifdef __VITIS_HLS__
+#pragma HLS DATAFLOW
     dtype scale = dtype(1.0) / hls::sqrt(dtype(head_dim));
 #else
     dtype scale = dtype(1.0) / sqrt(dtype(head_dim));
@@ -363,49 +364,73 @@ private:
 #ifdef __VITIS_HLS__
 #pragma HLS UNROLL factor = head_unroll_factor
 #endif
+
       dtype scores[max_seq_len][max_seq_len];
 #ifdef __VITIS_HLS__
       constexpr bool should_partition_scores =
           (attn_partition_factor > 1) && (max_seq_len <= 1024);
       if constexpr (should_partition_scores) {
 #pragma HLS ARRAY_PARTITION variable = scores type = cyclic factor =           \
-    attn_partition_factor
+    attn_partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = scores type = cyclic factor =           \
+    attn_partition_factor dim = 2
       } else {
-#pragma HLS ARRAY_PARTITION variable = scores type = cyclic factor = 4
+#pragma HLS ARRAY_PARTITION variable = scores type = cyclic factor = 4 dim = 1
+#pragma HLS ARRAY_PARTITION variable = scores type = cyclic factor = 4 dim = 2
       }
 #endif
 
-      // Compute QK^T / sqrt(d_k)
-      for (int i = 0; i < actual_len; i++) {
-        for (int j = 0; j < actual_len; j++) {
+      for (int i_tile = 0; i_tile < actual_len; i_tile += attn_tile_size) {
+        for (int j_tile = 0; j_tile < actual_len; j_tile += attn_tile_size) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #pragma HLS LOOP_FLATTEN off
-#pragma HLS PIPELINE II = pipeline_ii
 #endif
-          dtype dot = dtype(0.0);
-          for (int d = 0; d < head_dim; d++) {
+          int i_max = (i_tile + attn_tile_size < actual_len)
+                          ? i_tile + attn_tile_size
+                          : actual_len;
+          int j_max = (j_tile + attn_tile_size < actual_len)
+                          ? j_tile + attn_tile_size
+                          : actual_len;
+
+          for (int i = i_tile; i < i_max; i++) {
+            for (int j = j_tile; j < j_max; j++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 128
-#pragma HLS UNROLL factor = attn_unroll_factor
-#pragma HLS BIND_OP variable = dot op = add impl = dsp
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 16
 #endif
-            dot += q[i][h][d] * k[j][h][d];
+              dtype dot = dtype(0.0);
+#ifdef __VITIS_HLS__
+#pragma HLS BIND_OP variable = dot op = mul impl = dsp
+#endif
+
+              for (int d = 0; d < head_dim; d++) {
+#ifdef __VITIS_HLS__
+#pragma HLS UNROLL factor = attn_unroll_factor
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 128
+#endif
+                dot += q[i][h][d] * k[j][h][d];
+              }
+              scores[i][j] = dot * scale;
+            }
           }
-          scores[i][j] = dot * scale;
         }
       }
 
-      // Apply softmax per row
       dtype attn_weights[max_seq_len][max_seq_len];
 #ifdef __VITIS_HLS__
       if constexpr (should_partition_scores) {
 #pragma HLS ARRAY_PARTITION variable = attn_weights type = cyclic factor =     \
-    attn_partition_factor
+    attn_partition_factor dim = 1
+#pragma HLS ARRAY_PARTITION variable = attn_weights type = cyclic factor =     \
+    attn_partition_factor dim = 2
       } else {
-#pragma HLS ARRAY_PARTITION variable = attn_weights type = cyclic factor = 4
+#pragma HLS ARRAY_PARTITION variable = attn_weights type = cyclic factor =     \
+    4 dim = 1
+#pragma HLS ARRAY_PARTITION variable = attn_weights type = cyclic factor =     \
+    4 dim = 2
       }
 #endif
+
       for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
@@ -414,20 +439,23 @@ private:
         softmax::forward(attn_weights[i], scores[i]);
       }
 
-      // Apply attention weights to values
       for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#endif
         for (int d = 0; d < head_dim; d++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-#pragma HLS LOOP_FLATTEN off
 #pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS LOOP_FLATTEN off
 #endif
           dtype sum = dtype(0.0);
+#ifdef __VITIS_HLS__
+#pragma HLS BIND_OP variable = sum op = mul impl = dsp
+#endif
           for (int j = 0; j < actual_len; j++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #pragma HLS UNROLL factor = attn_unroll_factor
-#pragma HLS BIND_OP variable = sum op = add impl = dsp
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
             sum += attn_weights[i][j] * v[j][h][d];
           }
