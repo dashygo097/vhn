@@ -91,6 +91,18 @@ public:
 #pragma HLS INLINE off
     output_stream.write(reduce_stream_impl(input_stream));
   }
+
+  static void reduce_2d(hls::stream<dtype> &output_stream,
+                        hls::stream<dtype> &input_stream,
+                        const int batch_size) {
+#pragma HLS INLINE off
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+      output_stream.write(reduce_stream_impl(input_stream));
+    }
+  }
+
 #endif
 
 private:
@@ -220,6 +232,16 @@ public:
     output_stream.write(reduce_stream_impl(input_stream));
   }
 
+  static void reduce_2d(hls::stream<dtype> &output_stream,
+                        hls::stream<dtype> &input_stream,
+                        const int batch_size) {
+#pragma HLS INLINE off
+  BATCH_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+      output_stream.write(reduce_stream_impl(input_stream));
+    }
+  }
 #endif
 
 private:

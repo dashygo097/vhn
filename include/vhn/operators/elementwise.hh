@@ -159,11 +159,29 @@ public:
     elem_1d_stream_impl(output_stream, input_stream);
   }
 
+  static void elem_2d(hls::stream<dtype> &output_stream,
+                      hlshls::stream<dtype> &input_stream,
+                      const int batch_size) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+      elem_1d_stream_impl(output_stream, input_stream);
+    }
+  }
+
   static void elem(hls::stream<dtype> &output_stream,
                    hls::stream<dtype> &input_stream1,
                    hls::stream<dtype> &input_stream2) {
 #pragma HLS INLINE off
     elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
+  }
+
+  static void elem_2d(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream1,
+                      hls::stream<dtype> &input_stream2, const int batch_size) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+      elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
+    }
   }
 #endif
 
@@ -404,11 +422,27 @@ public:
     elem_1d_stream_impl(output_stream, input_stream);
   }
 
+  static void elem_2d(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream, const int batch_size) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+      elem_1d_stream_impl(output_stream, input_stream);
+    }
+  }
+
   static void elem(hls::stream<dtype> &output_stream,
                    hls::stream<dtype> &input_stream1,
                    hls::stream<dtype> &input_stream2) {
 #pragma HLS INLINE off
     elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
+  }
+  static void elem_2d(hls::stream<dtype> &output_stream,
+                      hls::stream<dtype> &input_stream1,
+                      hls::stream<dtype> &input_stream2, const int batch_size) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+      elem_1d_stream_impl(output_stream, input_stream1, input_stream2);
+    }
   }
 #endif
 

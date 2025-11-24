@@ -84,6 +84,18 @@ public:
     ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
   }
 
+  static void ln_2d(hls::stream<dtype> &output_stream,
+                    hls::stream<dtype> &input_stream, const int seq_len,
+                    const Gamma_t gamma, const Beta_t beta,
+                    const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+  SEQ_LOOP:
+    for (int i = 0; i < seq_len; i++) {
+#pragma HLS LOOP_FLATTEN off
+      ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+    }
+  }
+
 #endif
 
 private:
@@ -253,6 +265,18 @@ public:
                  const Beta_t beta, const float epsilon = 1e-5) {
 #pragma HLS INLINE off
     ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+  }
+
+  static void ln_2d(hls::stream<dtype> &output_stream,
+                    hls::stream<dtype> &input_stream, const int seq_len,
+                    const Gamma_t gamma, const Beta_t beta,
+                    const float epsilon = 1e-5) {
+#pragma HLS INLINE off
+  SEQ_LOOP:
+    for (int i = 0; i < seq_len; i++) {
+#pragma HLS LOOP_FLATTEN off
+      ln_1d_stream_impl(output_stream, input_stream, gamma, beta, epsilon);
+    }
   }
 
 #endif

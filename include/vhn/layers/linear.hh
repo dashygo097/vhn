@@ -87,6 +87,7 @@ public:
 #pragma HLS INLINE off
     for (int b = 0; b < batch_size; b++) {
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
       lin_1d_stream_impl(output_stream, input_stream, weight, bias);
     }
   }
@@ -233,6 +234,7 @@ public:
 #pragma HLS INLINE off
     for (int b = 0; b < batch_size; b++) {
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
       lin_1d_stream_impl(output_stream, input_stream, weight, bias);
     }
   }

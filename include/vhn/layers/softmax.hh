@@ -17,6 +17,13 @@ template <int N> struct SoftmaxHParams {
   static constexpr int n = N;
 };
 
+template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR>
+struct SoftmaxConfig {
+  static constexpr int pipeline_ii = PIPELINE_II;
+  static constexpr int unroll_factor = UNROLL_FACTOR;
+  static constexpr int partition_factor = PARTITION_FACTOR;
+};
+
 // ============================================================================
 // Non-optimized version (OPT_NONE)
 // ============================================================================
@@ -53,6 +60,25 @@ public:
       sm_1d_impl(output[b], input[b]);
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void sm(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    sm_1d_stream_impl(output_stream, input_stream);
+  }
+
+  static void sm_2d(hls::stream<dtype> &output_stream,
+                    hls::stream<dtype> &input_stream, const int batch_size) {
+#pragma HLS INLINE off
+  BATCH_STREAM_LOOP:
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
+      sm_1d_stream_impl(output_stream, input_stream);
+    }
+  }
+#endif
 
 private:
   static void sm_1d_impl(dtype *output, const dtype *input) {
@@ -102,13 +128,49 @@ private:
       output[i] = output[i] * inv_sum;
     }
   }
-};
 
-template <int PIPELINE_II, int UNROLL_FACTOR, int PARTITION_FACTOR>
-struct SoftmaxConfig {
-  static constexpr int pipeline_ii = PIPELINE_II;
-  static constexpr int unroll_factor = UNROLL_FACTOR;
-  static constexpr int partition_factor = PARTITION_FACTOR;
+#ifdef __VITIS_HLS__
+  static void sm_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE off
+
+    dtype max_val = input_stream.read();
+    dtype temp_input[n];
+
+  READ_FIND_MAX:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = 1
+      dtype val = input_stream.read();
+      temp_input[i] = val;
+      if (val > max_val) {
+        max_val = val;
+      }
+    }
+
+    dtype sum = dtype(0.0f);
+
+  CALC_EXP_STREAM:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = 2
+      dtype exp_val = hls::exp(temp_input[i] - max_val);
+      temp_input[i] = exp_val;
+      sum += exp_val;
+    }
+
+    dtype inv_sum = dtype(1.0) / sum;
+
+  NORMALIZE_STREAM:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = 1
+      dtype normalized = temp_input[i] * inv_sum;
+      output_stream.write(normalized);
+    }
+  }
+#endif
 };
 
 // ============================================================================
@@ -151,6 +213,25 @@ public:
       sm_1d_impl(output[b], input[b]);
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void sm(hls::stream<dtype> &output_stream,
+                 hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+    sm_1d_stream_impl(output_stream, input_stream);
+  }
+
+  static void sm_2d(hls::stream<dtype> &output_stream,
+                    hls::stream<dtype> &input_stream, const int batch_size) {
+#pragma HLS INLINE off
+  BATCH_STREAM_LOOP_OPT:
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
+      sm_1d_stream_impl(output_stream, input_stream);
+    }
+  }
+#endif
 
 private:
   static void sm_1d_impl(dtype *output, const dtype *input) {
@@ -230,6 +311,55 @@ private:
       output[i] = output[i] * inv_sum;
     }
   }
+
+#ifdef __VITIS_HLS__
+  static void sm_1d_stream_impl(hls::stream<dtype> &output_stream,
+                                hls::stream<dtype> &input_stream) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE off
+
+    dtype max_val = -1e9;
+    dtype buffer[n];
+
+#pragma HLS ARRAY_PARTITION variable = buffer cyclic factor = partition_factor
+
+  READ_MAX_STREAM:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = 1
+      dtype val = input_stream.read();
+      buffer[i] = val;
+      if (val > max_val) {
+        max_val = val;
+      }
+    }
+
+    dtype sum = dtype(0.0f);
+
+  CALC_EXP_OPT_STREAM:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = pipeline_ii
+#pragma HLS BIND_OP variable = sum op = fadd impl = fabric latency = 4
+      dtype exp_val = hls::exp(buffer[i] - max_val);
+      buffer[i] = exp_val;
+      sum += exp_val;
+    }
+
+    dtype inv_sum;
+#pragma HLS BIND_OP variable = inv_sum op = fdiv impl = fabric latency = 16
+    inv_sum = dtype(1.0) / sum;
+
+  NORMALIZE_OPT_STREAM:
+    for (int i = 0; i < n; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
+#pragma HLS PIPELINE II = 2
+#pragma HLS BIND_OP variable = output_stream op = write
+      dtype normalized = buffer[i] * inv_sum;
+      output_stream.write(normalized);
+    }
+  }
+#endif
 };
 
 } // namespace vhn
