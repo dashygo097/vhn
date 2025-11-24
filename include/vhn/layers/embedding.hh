@@ -45,7 +45,6 @@ public:
                       const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int i = 0; i < batch_size; i++) {
@@ -166,7 +165,6 @@ public:
                       const int batch_size, const Weight_t weight) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int i = 0; i < batch_size; i++) {
@@ -261,7 +259,6 @@ private:
                                      hls::stream<int> &input, const int length,
                                      const Weight_t weight) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 
     constexpr bool should_partition =
         (partition_factor > 1) && (embed_size <= 2048);

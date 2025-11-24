@@ -184,7 +184,6 @@ public:
                       const W2_t w2, const b2_t b2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
     dtype fc1_out[max_seq_len][d_ff];
     dtype act_out[max_seq_len][d_ff];
@@ -246,7 +245,6 @@ public:
                       const b2_t b2) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
     dtype *fc1_out = new dtype[actual_len * d_ff];
     dtype *act_out = new dtype[actual_len * d_ff];
@@ -275,7 +273,6 @@ public:
                       const W1_t w1, const b1_t b1, const W2_t w2,
                       const b2_t b2) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 
     hls::stream<dtype> fc1_stream("fc1_stream");
     hls::stream<dtype> act_stream("act_stream");

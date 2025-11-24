@@ -56,7 +56,6 @@ public:
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
 
     dtype sum[d_model];
@@ -75,7 +74,6 @@ public:
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
     dtype sum[d_model];
 

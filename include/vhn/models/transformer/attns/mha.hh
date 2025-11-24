@@ -354,7 +354,6 @@ private:
                                 const int actual_len) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
     dtype scale = dtype(1.0) / hls::sqrt(dtype(head_dim));
 #else
     dtype scale = dtype(1.0) / sqrt(dtype(head_dim));

@@ -69,7 +69,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -89,7 +88,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -263,7 +261,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -283,7 +280,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {

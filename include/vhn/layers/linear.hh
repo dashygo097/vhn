@@ -391,7 +391,6 @@ private:
       for (int j_tile = 0; j_tile < in_features; j_tile += IN_TILE) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 256
-#pragma HLS DATAFLOW
 #endif
 
         dtype pe_acc[OUT_TILE][IN_TILE];
@@ -441,7 +440,6 @@ private:
                                      hls::stream<dtype> &input_stream,
                                      const Weight_t weight, const Bias_t bias) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 
     dtype input[in_features];
 #pragma HLS ARRAY_PARTITION variable = input cyclic factor = partition_factor

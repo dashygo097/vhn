@@ -60,7 +60,6 @@ public:
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
   BATCH_LOOP:
@@ -76,7 +75,6 @@ public:
                       const Bias_t bias, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
     constexpr int input_size = in_channels * n;
@@ -228,9 +226,6 @@ public:
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
   BATCH_LOOP:
@@ -249,9 +244,6 @@ public:
                       const Bias_t bias, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 32
 #endif
     constexpr int input_size = in_channels * n;
@@ -276,7 +268,6 @@ public:
                       hls::stream<dtype> &input_stream, const Weight_t weight,
                       const Bias_t bias, const int batch_size) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
     forward_stream_impl(output_stream, input_stream, weight, bias, batch_size);
   }
 #endif

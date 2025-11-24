@@ -56,7 +56,6 @@ public:
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
     addnorm::forward(output, input, residual, actual_len, gamma, beta);
   }
@@ -172,9 +171,6 @@ public:
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
     partition_factor
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
@@ -189,9 +185,6 @@ public:
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-    if constexpr (dataflow_enabled) {
-#pragma HLS DATAFLOW
-    }
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
     partition_factor
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
@@ -207,7 +200,6 @@ public:
                       hls::stream<dtype> &residual_stream, const int actual_len,
                       const gamma_t gamma, const beta_t beta) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
     partition_factor
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \

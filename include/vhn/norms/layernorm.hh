@@ -49,7 +49,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
@@ -66,7 +65,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
@@ -224,7 +222,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
@@ -240,7 +237,6 @@ public:
                       const float epsilon = 1e-5) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   SEQ_LOOP:
     for (int i = 0; i < seq_len; i++) {
@@ -341,7 +337,6 @@ private:
                                      const Gamma_t gamma, const Beta_t beta,
                                      const float epsilon) {
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 
     dtype input_buffer[hidden_dim];
 

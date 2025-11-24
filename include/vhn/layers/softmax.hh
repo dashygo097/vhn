@@ -41,7 +41,6 @@ public:
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -56,7 +55,6 @@ public:
   static void forward(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -180,7 +178,6 @@ public:
                       const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
@@ -196,7 +193,6 @@ public:
   static void forward(dtype *output, const dtype *input, const int batch_size) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS DATAFLOW
 #endif
   BATCH_LOOP:
     for (int b = 0; b < batch_size; b++) {
