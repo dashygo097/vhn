@@ -21,7 +21,7 @@ template <typename NORM_HParams, NormType NORM_TYPE> struct AddNormHParams {
 };
 
 // ============================================================================
-// AddNorm specialization for OPT_NONE (using PreNorm, PostNorm)
+// AddNorm specialization for OPT_NONE
 // ============================================================================
 template <typename DType, typename HParams>
 class AddNorm<DType, HParams, void, OPT_NONE> {
@@ -65,7 +65,6 @@ public:
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
   }
@@ -114,16 +113,36 @@ public:
 
   static void forward(dtype output[][d_model], const dtype input[][d_model],
                       const dtype residual[][d_model], const int actual_len,
-                      const gamma_t gamma, const beta_t beta) {
+                      const gamma_t gamma, const gamma_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
 #pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
     memory_partition
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
     memory_partition
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
+    dtype normed[d_model];
+
+#ifdef __VITIS_HLS__
+    constexpr bool should_partition =
+        (memory_partition > 1) && (d_model <= 2048);
+    if constexpr (should_partition) {
+#pragma HLS ARRAY_PARTITION variable = normed type = cyclic factor =           \
+    memory_partition
+    } else {
+#pragma HLS ARRAY_PARTITION variable = normed type = cyclic factor = 4
+    }
+#endif
+
+  SEQ_LOOP:
+    for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#pragma HLS PIPELINE II = 1
+#pragma HLS UNROLL factor = 1
+#endif
+      addnorm::addnorm(output[i], input[i], residual[i], gamma, beta);
+    }
   }
 
   static void forward(dtype *output, const dtype *input, const dtype *residual,
@@ -135,9 +154,17 @@ public:
     memory_partition
 #pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
     memory_partition
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-    addnorm::addnorm(output, input, residual, actual_len, gamma, beta);
+
+  SEQ_LOOP:
+    for (int i = 0; i < actual_len; i++) {
+#ifdef __VITIS_HLS__
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
+#pragma HLS PIPELINE II = 1
+#endif
+      addnorm::addnorm(&output[i * d_model], &input[i * d_model],
+                       &residual[i * d_model], gamma, beta);
+    }
   }
 };
 

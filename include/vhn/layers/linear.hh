@@ -81,6 +81,16 @@ public:
     lin_1d_stream_impl(output_stream, input_stream, weight, bias);
   }
 
+  static void lin_2d(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream, const int batch_size,
+                     const Weight_t weight, const Bias_t bias) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+      lin_1d_stream_impl(output_stream, input_stream, weight, bias);
+    }
+  }
+
 #endif
 
 private:
@@ -216,6 +226,16 @@ public:
 #pragma HLS INLINE off
     lin_1d_stream_impl(output_stream, input_stream, weight, bias);
   }
+
+  static void lin_2d(hls::stream<dtype> &output_stream,
+                     hls::stream<dtype> &input_stream, const int batch_size,
+                     const Weight_t weight, const Bias_t bias) {
+#pragma HLS INLINE off
+    for (int b = 0; b < batch_size; b++) {
+#pragma HLS LOOP_FLATTEN off
+      lin_1d_stream_impl(output_stream, input_stream, weight, bias);
+    }
+  }
 #endif
 
 private:
@@ -327,7 +347,6 @@ private:
         int j_end =
             (j_tile + IN_TILE < in_features) ? j_tile + IN_TILE : in_features;
 
-        // Local tile buffers
         dtype input_tile[IN_TILE];
 #ifdef __VITIS_HLS__
 #pragma HLS ARRAY_PARTITION variable = input_tile complete
@@ -433,6 +452,7 @@ private:
     }
   }
 
+private:
 #ifdef __VITIS_HLS__
   static void lin_1d_stream_impl(hls::stream<dtype> &output_stream,
                                  hls::stream<dtype> &input_stream,

@@ -192,7 +192,7 @@ template <typename DType, typename HParams, typename Config>
 class LayerNorm<DType, HParams, Config, OPT_ENABLED> {
 public:
   using dtype = DType;
-  static constexpr int hidden_dim = hidden_dim;
+  static constexpr int hidden_dim = HParams::hidden_dim;
   static constexpr OptLevel opt_level = OPT_ENABLED;
 
   static constexpr int pipeline_ii = Config::pipeline_ii;

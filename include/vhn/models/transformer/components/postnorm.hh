@@ -14,12 +14,11 @@ class PostNorm;
 
 template <typename NORM_HParams> struct PostNormHParams {
   using norm_hparams = NORM_HParams;
-
   static constexpr int d_model = norm_hparams::hidden_dim;
 };
 
 // ============================================================================
-// PostNorm specialization for OPT_NONE (using Add, LayerNorm)
+// PostNorm specialization for OPT_NONE
 // ============================================================================
 template <typename DType, typename HParams, typename Config>
 class PostNorm<DType, HParams, Config, OPT_NONE> {
@@ -63,9 +62,10 @@ public:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-      add::elem(sum, input[i], residual[i], actual_len);
-      norm::ln(output[i], sum, gamma, beta, actual_len);
+      add::elem(sum, input[i], residual[i]);
+      norm::ln(output[i], sum, gamma, beta);
     }
   }
 
@@ -81,9 +81,10 @@ public:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
 #pragma HLS LOOP_FLATTEN off
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
-      add::elem(sum, input + i * d_model, residual + i * d_model, actual_len);
-      norm::ln(output + i * d_model, sum, gamma, beta, actual_len);
+      add::elem(sum, input + i * d_model, residual + i * d_model);
+      norm::ln(output + i * d_model, sum, gamma, beta);
     }
   }
 };
@@ -127,16 +128,6 @@ public:
 #pragma HLS PIPELINE II = 1
 #endif
     dtype sum[d_model];
-
-#ifdef __VITIS_HLS__
-#pragma HLS ARRAY_PARTITION variable = sum type = complete
-#pragma HLS ARRAY_PARTITION variable = input type = complete
-#pragma HLS ARRAY_PARTITION variable = residual type = complete
-#pragma HLS ARRAY_PARTITION variable = output type = complete
-#pragma HLS ARRAY_PARTITION variable = gamma type = complete
-#pragma HLS ARRAY_PARTITION variable = beta type = complete
-#endif
-
     add::elem(sum, input, residual);
     norm::ln(output, sum, gamma, beta);
   }
@@ -146,24 +137,26 @@ public:
                       const gamma_t gamma, const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+#pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
+    memory_partition dim = 1
+#pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
+    memory_partition dim = 1
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     dtype sum[d_model];
 
 #ifdef __VITIS_HLS__
-    constexpr bool should_partition =
-        (memory_partition > 1) && (d_model <= 2048);
-    if constexpr (should_partition) {
+    constexpr int part_factor = (memory_partition > 1) ? memory_partition : 4;
+    if constexpr (d_model > 512) {
 #pragma HLS ARRAY_PARTITION variable = sum type = cyclic factor =              \
-    memory_partition
-    } else {
-#pragma HLS ARRAY_PARTITION variable = sum type = cyclic factor = 4
+    part_factor dim = 1
     }
 #endif
 
   SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
+#pragma HLS PIPELINE II = 1
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       add::elem(sum, input[i], residual[i]);
@@ -176,46 +169,32 @@ public:
                       const beta_t beta) {
 #ifdef __VITIS_HLS__
 #pragma HLS INLINE off
+#pragma HLS ARRAY_PARTITION variable = gamma type = cyclic factor =            \
+    memory_partition dim = 1
+#pragma HLS ARRAY_PARTITION variable = beta type = cyclic factor =             \
+    memory_partition dim = 1
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
     dtype sum[d_model];
 
 #ifdef __VITIS_HLS__
-    constexpr bool should_partition = (memory_partition > 1);
-    if constexpr (!should_partition) {
-#pragma HLS BIND_STORAGE variable = gamma type = rom_1p impl = bram
-#pragma HLS BIND_STORAGE variable = beta type = rom_1p impl = bram
+    constexpr int part_factor = (memory_partition > 1) ? memory_partition : 4;
+    if constexpr (d_model > 512) {
+#pragma HLS ARRAY_PARTITION variable = sum type = cyclic factor =              \
+    part_factor dim = 1
     }
 #endif
 
   SEQ_LOOP:
     for (int i = 0; i < actual_len; i++) {
 #ifdef __VITIS_HLS__
-#pragma HLS LOOP_FLATTEN off
+#pragma HLS PIPELINE II = 1
 #pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
 #endif
       add::elem(sum, input + i * d_model, residual + i * d_model);
       norm::ln(output + i * d_model, sum, gamma, beta);
     }
   }
-
-#ifdef __VITIS_HLS__
-  static void addnorm(hls::stream<dtype> &output_stream,
-                      hls::stream<dtype> &input_stream,
-                      hls::stream<dtype> &residual_stream, const int actual_len,
-                      const gamma_t gamma, const beta_t beta) {
-#pragma HLS INLINE off
-
-    hls::stream<dtype> sum_stream("sum_stream");
-
-#pragma HLS STREAM variable = sum_stream depth = 2
-
-  PROCESS_STREAM:
-    for (int i = 0; i < actual_len; i++) {
-#pragma HLS LOOP_TRIPCOUNT min = 1 max = 512
-      add::elem(sum_stream, input_stream, residual_stream);
-      norm::ln(output_stream, sum_stream, gamma, beta);
-    }
-  }
-#endif
 };
+
 } // namespace vhn
