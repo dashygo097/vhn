@@ -3,17 +3,17 @@
 #include <iomanip>
 #include <iostream>
 
+struct ComparisonResult {
+  float max_abs_error = 0.0f;
+  float max_rel_error = 0.0f;
+  float avg_abs_error = 0.0f;
+  float rmse = 0.0f;
+  bool passed = false;
+  int total_elements = 0;
+};
+
 class ResultComparator {
 public:
-  struct ComparisonResult {
-    float max_abs_error = 0.0f;
-    float max_rel_error = 0.0f;
-    float avg_abs_error = 0.0f;
-    float rmse = 0.0f;
-    bool passed = false;
-    int total_elements = 0;
-  };
-
   static ComparisonResult compare(const float *result, const float *reference,
                                   int size) {
     ComparisonResult res;
