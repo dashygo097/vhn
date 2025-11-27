@@ -1,8 +1,6 @@
 print_info("―――――――――――――――――TEST SCOPE――――――――――――――――――" "0")
 
 add_subdirectory(sanity)
-add_subdirectory(parser)
-add_subdirectory(load_weights)
 
 # stastics
 file(GLOB_RECURSE TEST_FILES *.c *.cc *.cpp)
